@@ -1,5 +1,7 @@
 # CrossLink
 
+[![Hangar](https://img.shields.io/hangar/dt/CrossLink?style=flat-square&label=hangar)](https://hangar.papermc.io/GodOrigem/CrossLink)
+[![Stars](https://img.shields.io/hangar/stars/CrossLink?style=flat-square)](https://hangar.papermc.io/GodOrigem/CrossLink)
 [![Minecraft](https://img.shields.io/badge/Minecraft-1.18%20%E2%86%92%2026.2-brightgreen?style=flat-square)](#requirements)
 [![Platform](https://img.shields.io/badge/platform-Paper%20%7C%20Spigot%20%7C%20Folia-blue?style=flat-square)](#platform-notes)
 [![Java](https://img.shields.io/badge/Java-17%2B-orange?style=flat-square)](#building)
@@ -77,11 +79,19 @@ does not have.
 
 ## Installation
 
-1. Download `CrossLink-x.y.z.jar` from [Releases](../../releases)
+1. Download the latest **1.1.0-beta** from
+   [Hangar](https://hangar.papermc.io/GodOrigem/CrossLink) or
+   [Releases](../../releases)
 2. Drop it into `plugins/`
 3. Restart the server
 
-No configuration is required. `config.yml` is generated on first boot.
+No configuration is required. `config.yml` is generated on first boot, and
+updating the plugin merges any new options into your existing file without
+touching your values or comments.
+
+> **Take 1.1.0-beta, not 1.0.0.** Despite the label it is strictly better:
+> 1.0.0 supports only Paper 26.2, loses the Java skin on the first relog, and
+> has broken pet ownership. It is kept for history only.
 
 ## How players link
 
