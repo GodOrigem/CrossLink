@@ -1,21 +1,26 @@
 package br.origem.linkedplayers;
 
+import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.AnimalTamer;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Tameable;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
+import java.io.File;
 import java.util.*;
+import java.util.logging.Level;
 
 /**
- * Copia o estado de quem mexeu para os outros membros online do grupo.
+ * Espelha o estado da conta primaria nas secundarias.
  *
- * Dois caminhos alimentam isso:
- *  - eventos (rapido, reage no tick seguinte a acao)
- *  - varredura periodica (rede de seguranca pra mudanca que nenhum evento viu)
- *
- * O conjunto 'applying' evita laco infinito: enquanto escrevemos no inventario
- * de alguem, os eventos que isso dispara sao ignorados.
+ * REGRA CENTRAL, e a licao de um bug que apagou o inventario de um jogador:
+ * uma conta so vira "fonte da verdade" quando ELA MESMA mudou -- comparando
+ * com o proprio retrato anterior, nunca com o estado do grupo. Comparar com o
+ * estado do grupo faz qualquer conta recem-vinculada parecer "divergente", e
+ * um inventario vazio entrando no grupo sobrescrevia o inventario cheio.
  */
 public final class SyncEngine {
 
@@ -23,12 +28,17 @@ public final class SyncEngine {
     private final GroupManager groups;
     private final Set<UUID> applying = new HashSet<>();
     private final Set<String> scheduled = new HashSet<>();
+    /** Ultimo retrato conhecido de cada jogador, para detectar quem mexeu. */
+    private final Map<UUID, Integer> lastSeen = new HashMap<>();
 
     public boolean syncInventory = true;
     public boolean syncEnderChest = true;
     public boolean syncXp = true;
     public boolean syncHealth = false;
     public boolean syncFood = false;
+    public boolean syncPets = true;
+    public boolean clearSecondaryOnQuit = true;
+    public int backupsToKeep = 10;
 
     public SyncEngine(Plugin plugin, GroupManager groups) {
         this.plugin = plugin;
@@ -37,12 +47,12 @@ public final class SyncEngine {
 
     public boolean isApplying(Player p) { return applying.contains(p.getUniqueId()); }
 
-    /** Agenda uma sincronizacao a partir deste jogador no proximo tick. */
+    public void forget(UUID id) { lastSeen.remove(id); }
+
     public void markDirty(Player p) {
         if (p == null || isApplying(p)) return;
         LinkGroup g = groups.of(p.getUniqueId());
         if (g == null) return;
-        // Um agendamento por grupo por tick: varios eventos da mesma acao viram um sync so.
         if (!scheduled.add(g.name())) return;
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             scheduled.remove(g.name());
@@ -56,6 +66,7 @@ public final class SyncEngine {
         if (g == null) return;
         SharedState st = capture(source);
         g.state(st);
+        lastSeen.put(source.getUniqueId(), st.fingerprint());
         for (UUID id : g.members().keySet()) {
             if (id.equals(source.getUniqueId())) continue;
             Player other = plugin.getServer().getPlayer(id);
@@ -63,20 +74,51 @@ public final class SyncEngine {
         }
     }
 
-    /** Jogador entrou: recebe o estado do grupo (mudancas que ocorreram offline). */
+    /**
+     * Usado ao vincular: a primaria dita o estado e todo mundo adota.
+     * Nunca o contrario -- e isso que impede a conta nova de zerar a antiga.
+     */
+    public void adoptFromPrimary(LinkGroup g) {
+        UUID prim = g.primary();
+        if (prim == null) return;
+        Player primary = plugin.getServer().getPlayer(prim);
+        if (primary != null && primary.isOnline()) {
+            SharedState st = capture(primary);
+            g.state(st);
+            lastSeen.put(prim, st.fingerprint());
+        }
+        SharedState st = g.state();
+        for (UUID id : g.members().keySet()) {
+            if (id.equals(prim)) continue;
+            Player other = plugin.getServer().getPlayer(id);
+            if (other != null && other.isOnline()) apply(other, st);
+        }
+    }
+
+    /** Jogador entrou. Secundaria SEMPRE adota; so a primaria pode definir a base. */
     public void onJoin(Player p) {
         LinkGroup g = groups.of(p.getUniqueId());
         if (g == null) return;
         SharedState st = g.state();
-        // Grupo ainda sem estado: o primeiro a entrar define a base.
-        if (st.inventory.length == 0 && st.foodLevel < 0 && st.health < 0) {
-            g.state(capture(p));
-            return;
+        boolean vazio = st.inventory.length == 0 && st.foodLevel < 0 && st.health < 0;
+
+        if (vazio && g.isPrimary(p.getUniqueId())) {
+            SharedState mine = capture(p);
+            g.state(mine);
+            lastSeen.put(p.getUniqueId(), mine.fingerprint());
+        } else if (!vazio) {
+            apply(p, st);
+        } else {
+            // Grupo sem estado e quem entrou nao e a primaria: nao toca em nada.
+            lastSeen.put(p.getUniqueId(), capture(p).fingerprint());
         }
-        apply(p, st);
+        if (syncPets) retargetPets(g, p);
     }
 
-    /** Varredura de seguranca: acha quem divergiu e propaga. */
+    /**
+     * Varredura de seguranca. So considera "autor" quem mudou em relacao ao
+     * PROPRIO retrato anterior.
+     */
     public void sweep() {
         for (LinkGroup g : groups.all()) {
             List<Player> online = new ArrayList<>();
@@ -84,17 +126,66 @@ public final class SyncEngine {
                 Player p = plugin.getServer().getPlayer(id);
                 if (p != null && p.isOnline()) online.add(p);
             }
-            if (online.size() < 2) {
-                // Sozinho: so mantem o estado do grupo atualizado pra quem entrar depois.
-                if (online.size() == 1) g.state(capture(online.get(0)));
-                continue;
-            }
-            int expected = g.state().fingerprint();
-            Player diverged = null;
+            if (online.isEmpty()) continue;
+
+            Player actor = null;
             for (Player p : online) {
-                if (capture(p).fingerprint() != expected) { diverged = p; break; }
+                int fp = capture(p).fingerprint();
+                Integer last = lastSeen.get(p.getUniqueId());
+                if (last == null) { lastSeen.put(p.getUniqueId(), fp); continue; }
+                if (fp != last) { actor = p; break; }
             }
-            if (diverged != null) syncFrom(diverged);
+            if (actor != null) syncFrom(actor);
+        }
+    }
+
+    /**
+     * Ao sair, a conta secundaria fica com a playerdata vazia.
+     *
+     * Sem isso, os itens existiriam em DOIS arquivos de jogador ao mesmo tempo:
+     * bastava remover o plugin para cada conta acordar com uma copia, duplicando
+     * tudo. Mantendo os itens so no uid da conta primaria, remover o plugin
+     * deixa exatamente um dono.
+     */
+    public void onQuit(Player p) {
+        LinkGroup g = groups.of(p.getUniqueId());
+        if (g == null) return;
+        syncFrom(p);
+        if (clearSecondaryOnQuit && !g.isPrimary(p.getUniqueId())) {
+            applying.add(p.getUniqueId());
+            try {
+                if (syncInventory) p.getInventory().clear();
+                if (syncEnderChest) p.getEnderChest().clear();
+                if (syncXp) { p.setLevel(0); p.setExp(0f); p.setTotalExperience(0); }
+            } finally {
+                applying.remove(p.getUniqueId());
+            }
+        }
+        lastSeen.remove(p.getUniqueId());
+    }
+
+    /** Pets de qualquer membro passam a reconhecer quem esta online. */
+    public void retargetPets(LinkGroup g, Player to) {
+        if (g == null || to == null) return;
+        // Com mais de um membro online nao da pra decidir; pet so tem um dono.
+        for (UUID id : g.members().keySet()) {
+            if (id.equals(to.getUniqueId())) continue;
+            Player other = plugin.getServer().getPlayer(id);
+            if (other != null && other.isOnline()) return;
+        }
+        int changed = 0;
+        for (World w : plugin.getServer().getWorlds()) {
+            for (Tameable t : w.getEntitiesByClass(Tameable.class)) {
+                AnimalTamer owner = t.getOwner();
+                if (owner == null) continue;
+                UUID oid = owner.getUniqueId();
+                if (oid.equals(to.getUniqueId()) || !g.has(oid)) continue;
+                t.setOwner(to);
+                changed++;
+            }
+        }
+        if (changed > 0) {
+            plugin.getLogger().info("pets transferidos para " + to.getName() + ": " + changed);
         }
     }
 
@@ -116,6 +207,7 @@ public final class SyncEngine {
     }
 
     public void apply(Player p, SharedState st) {
+        backup(p);
         applying.add(p.getUniqueId());
         try {
             if (syncInventory && st.inventory.length > 0) {
@@ -143,6 +235,34 @@ public final class SyncEngine {
         } finally {
             applying.remove(p.getUniqueId());
         }
+        lastSeen.put(p.getUniqueId(), st.fingerprint());
+    }
+
+    /** Retrato em disco antes de qualquer escrita destrutiva. */
+    private void backup(Player p) {
+        if (backupsToKeep <= 0) return;
+        try {
+            SharedState cur = capture(p);
+            boolean vazio = true;
+            for (ItemStack i : cur.inventory) if (i != null) { vazio = false; break; }
+            if (vazio && cur.totalExperience == 0) return;   // nada que valha salvar
+
+            File dir = new File(plugin.getDataFolder(), "backups/" + p.getUniqueId());
+            if (!dir.exists() && !dir.mkdirs()) return;
+            YamlConfiguration yml = new YamlConfiguration();
+            yml.set("player", p.getName());
+            yml.set("when", new Date().toString());
+            cur.save(yml.createSection("state"));
+            yml.save(new File(dir, System.currentTimeMillis() + ".yml"));
+
+            File[] all = dir.listFiles((d, n) -> n.endsWith(".yml"));
+            if (all != null && all.length > backupsToKeep) {
+                Arrays.sort(all, Comparator.comparing(File::getName));
+                for (int i = 0; i < all.length - backupsToKeep; i++) all[i].delete();
+            }
+        } catch (Exception ex) {
+            plugin.getLogger().log(Level.WARNING, "falha ao salvar backup de " + p.getName(), ex);
+        }
     }
 
     private static ItemStack[] cloneAll(ItemStack[] src) {
@@ -151,7 +271,6 @@ public final class SyncEngine {
         return out;
     }
 
-    /** Protege contra tamanho diferente de inventario entre versoes. */
     private static ItemStack[] fit(ItemStack[] src, int size) {
         if (src.length == size) return cloneAll(src);
         ItemStack[] out = new ItemStack[size];

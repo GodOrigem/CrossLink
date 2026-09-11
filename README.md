@@ -92,6 +92,44 @@ Morte tem tratamento próprio. O inventário do morto é esvaziado *depois* do
 evento, então o sync é adiado um tick — sem isso os itens cairiam no chão **e**
 continuariam no inventário espelhado do outro, duplicando.
 
+## Conta primária e por que isso importa
+
+Todo grupo tem uma **conta primária** — na prática a conta Java, porque é a
+única que existe na Mojang. É nela que a playerdata de verdade fica; as
+secundárias são espelho.
+
+Duas regras decorrem disso, e as duas existem por causa de bugs reais:
+
+**Quem entra adota, nunca sobrescreve.** Uma versão anterior tratava como
+"fonte da verdade" qualquer conta cujo estado diferisse do estado do grupo — o
+que inclui, sempre, uma conta recém-vinculada. O resultado foi um inventário
+Bedrock vazio apagando um inventário Java cheio. Agora uma conta só vira fonte
+quando mudou em relação ao **próprio retrato anterior**.
+
+**A secundária sai com a playerdata vazia.** Sem isso, os itens existiriam em
+dois arquivos de jogador ao mesmo tempo, e bastaria remover o plugin para cada
+conta acordar com uma cópia — duplicando tudo. Com `clear-secondary-on-quit`
+ligado, remover o plugin deixa exatamente um dono.
+
+## Backups
+
+Antes de qualquer escrita destrutiva, o estado anterior do jogador vai pra
+`backups/<uuid>/<timestamp>.yml` (os 10 últimos por padrão).
+
+```
+/plink backups <jogador>
+/plink restore <jogador> [arquivo]
+```
+
+Restaurar também gera backup, então dá pra desfazer a restauração.
+
+## Pets
+
+Lobo, gato, cavalo e papagaio passam a reconhecer a conta que estiver online.
+Um pet só tem um dono, então a transferência só acontece quando há **apenas um
+membro do grupo online** — com os dois conectados não há como decidir, e nada
+muda. Desligue com `sync.pets: false`.
+
 ## Limites que você deve conhecer
 
 **Vida e fome vêm desligados.** Com `health: true`, dano em um aparece no outro

@@ -126,6 +126,6 @@ public final class SyncListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR)
     public void onQuit(PlayerQuitEvent e) {
         Player p = e.getPlayer();
-        if (groups.of(p.getUniqueId()) != null) engine.syncFrom(p);
+        if (groups.of(p.getUniqueId()) != null) engine.onQuit(p);
     }
 }

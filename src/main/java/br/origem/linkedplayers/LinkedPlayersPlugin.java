@@ -33,15 +33,14 @@ public final class LinkedPlayersPlugin extends JavaPlugin {
         engine = new SyncEngine(this, groups);
         applyConfig();
         skins = new SkinService(this);
-        links = new LinkService(groups, engine, getConfig().getLong("link.code-timeout-seconds", 300));
-
-        // So toca em classes do Cumulus/Floodgate se o plugin existir de verdade.
         if (getServer().getPluginManager().getPlugin("floodgate") != null) {
             bedrockUi = new BedrockUi(this);
             getLogger().info("Floodgate detectado -- interface nativa do Bedrock ativa.");
         } else {
             getLogger().info("Floodgate ausente -- vinculo so por comando de texto.");
         }
+        links = new LinkService(groups, engine, getConfig().getLong("link.code-timeout-seconds", 300),
+                id -> bedrockUi != null && BedrockUi.isBedrock(id));
 
         getServer().getPluginManager().registerEvents(new SyncListener(this, engine, groups), this);
         getServer().getPluginManager().registerEvents(new JoinPrompt(this, groups, prompts), this);
@@ -63,8 +62,10 @@ public final class LinkedPlayersPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        // Mesmo caminho do quit: grava o estado e esvazia as secundarias, pra
+        // nao sobrar uma copia dos itens na playerdata delas.
         for (Player p : getServer().getOnlinePlayers()) {
-            if (groups.of(p.getUniqueId()) != null) engine.syncFrom(p);
+            if (groups.of(p.getUniqueId()) != null) engine.onQuit(p);
         }
         if (groups != null) groups.save();
         if (prompts != null) prompts.save();
@@ -114,6 +115,9 @@ public final class LinkedPlayersPlugin extends JavaPlugin {
         engine.syncXp = getConfig().getBoolean("sync.xp", true);
         engine.syncHealth = getConfig().getBoolean("sync.health", false);
         engine.syncFood = getConfig().getBoolean("sync.food", false);
+        engine.syncPets = getConfig().getBoolean("sync.pets", true);
+        engine.clearSecondaryOnQuit = getConfig().getBoolean("safety.clear-secondary-on-quit", true);
+        engine.backupsToKeep = getConfig().getInt("safety.backups-to-keep", 10);
     }
 
     private void startTasks() {

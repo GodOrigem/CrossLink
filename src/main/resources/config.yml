@@ -4,10 +4,26 @@ sync:
   ender-chest: true
   xp: true             # nivel, progresso e total
 
+  # Pets (lobo, gato, cavalo, papagaio) passam a reconhecer a conta que estiver
+  # online. Um pet so tem um dono, entao a troca so acontece quando ha apenas
+  # um membro do grupo online.
+  pets: true
+
   # Vida e fome vem DESLIGADOS de proposito.
   # Com health: true, dano em um aparece no outro na hora -- e morte mata os dois.
   health: false
   food: false
+
+safety:
+  # Ao sair, a conta secundaria fica com a playerdata vazia.
+  # Sem isso os itens existiriam em dois arquivos de jogador ao mesmo tempo, e
+  # bastaria remover o plugin pra cada conta acordar com uma copia -- duplicando
+  # tudo. Com isso ligado, remover o plugin deixa exatamente um dono: a primaria.
+  clear-secondary-on-quit: true
+
+  # Retratos guardados antes de cada escrita destrutiva, por jogador.
+  # Restaure com /plink restore <jogador>.
+  backups-to-keep: 10
 
 link:
   # Mostra o formulario nativo do Bedrock no primeiro login de cada conta.

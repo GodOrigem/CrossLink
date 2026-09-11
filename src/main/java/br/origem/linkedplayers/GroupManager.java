@@ -44,6 +44,7 @@ public final class GroupManager {
     public void addMember(LinkGroup g, UUID id, String displayName) {
         g.add(id, displayName);
         byMember.put(id, g);
+        if (g.primary() == null) g.primary(id);
     }
 
     public void removeMember(LinkGroup g, UUID id) {
@@ -74,6 +75,14 @@ public final class GroupManager {
                     }
                 }
             }
+            String prim = gs.getString("primary");
+            if (prim != null) {
+                try { g.primary(UUID.fromString(prim)); }
+                catch (IllegalArgumentException ex) { log.warning("primary invalida no grupo " + key); }
+            }
+            if (g.primary() == null && !g.members().isEmpty()) {
+                g.primary(g.members().keySet().iterator().next());
+            }
             g.state(SharedState.load(gs.getConfigurationSection("state")));
             byName.put(key, g);
         }
@@ -84,6 +93,7 @@ public final class GroupManager {
         YamlConfiguration yml = new YamlConfiguration();
         for (LinkGroup g : byName.values()) {
             String base = "groups." + g.name();
+            if (g.primary() != null) yml.set(base + ".primary", g.primary().toString());
             for (Map.Entry<UUID, String> e : g.members().entrySet()) {
                 yml.set(base + ".members." + e.getKey(), e.getValue());
             }

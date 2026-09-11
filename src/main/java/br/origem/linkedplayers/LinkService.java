@@ -4,6 +4,7 @@ import org.bukkit.entity.Player;
 
 import java.security.SecureRandom;
 import java.util.*;
+import java.util.function.Predicate;
 
 /**
  * Vinculo self-service em duas etapas.
@@ -20,11 +21,15 @@ public final class LinkService {
     private final SyncEngine engine;
     private final Map<String, LinkRequest> byCode = new HashMap<>();
     private final long timeoutMillis;
+    /** Diz se uma UUID e de conta Bedrock; a outra ponta e quem vira primaria. */
+    private final Predicate<UUID> isBedrock;
 
-    public LinkService(GroupManager groups, SyncEngine engine, long timeoutSeconds) {
+    public LinkService(GroupManager groups, SyncEngine engine, long timeoutSeconds,
+                       Predicate<UUID> isBedrock) {
         this.groups = groups;
         this.engine = engine;
         this.timeoutMillis = timeoutSeconds * 1000L;
+        this.isBedrock = isBedrock;
     }
 
     public sealed interface Result {
@@ -87,11 +92,16 @@ public final class LinkService {
 
         groups.addMember(g, req.requesterId(), req.requesterName());
         groups.addMember(g, confirmer.getUniqueId(), confirmer.getName());
+
+        // A conta Java e a primaria: e a unica que existe na Mojang, e e nela
+        // que a playerdata de verdade fica. A Bedrock e espelho.
+        UUID java = isBedrock.test(req.requesterId()) ? confirmer.getUniqueId() : req.requesterId();
+        g.primary(java);
         groups.save();
 
-        // Quem confirmou adota o estado de quem pediu -- nao o contrario.
-        // Assim a conta ja jogada nao perde inventario para uma conta nova.
-        engine.onJoin(confirmer);
+        // Todo mundo adota o estado da primaria. Nunca o contrario -- foi
+        // assim que um inventario vazio sobrescreveu um cheio.
+        engine.adoptFromPrimary(g);
 
         return new Result.Linked(req.requesterId(), req.requesterName(), g.name());
     }

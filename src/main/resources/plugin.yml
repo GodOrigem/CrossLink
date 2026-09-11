@@ -1,5 +1,5 @@
 name: LinkedPlayers
-version: '1.1.1'
+version: '1.2.0'
 main: br.origem.linkedplayers.LinkedPlayersPlugin
 api-version: '1.21'
 description: Vincula conta Bedrock e Java no mesmo personagem - inventario, ender chest, XP e skin compartilhados, inclusive com as duas online.
