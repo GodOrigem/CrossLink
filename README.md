@@ -253,13 +253,29 @@ in the group — common on worlds that once ran in offline mode, where the same
 person had a different UUID. Two commands diagnose and fix that:
 
 ```
-/crosslink pets        # who owns the animals around you
-/crosslink claimpets   # adopt them into your group
+/crosslink pets [player] [radius]        # who owns the animals around them
+/crosslink claimpets [player] [radius]   # adopt them into the group
+/crosslink retargetpets [player]         # reassign this group's pets world-wide
 ```
 
 `pets` prints `OUTSIDE your group` next to any animal whose owner is not
-linked. `claimpets` takes ownership of nearby tamed animals regardless of who
-owns them, so it is admin-only.
+linked.
+
+All three take an optional player name so they can be run **from the console**.
+That matters more than it sounds: the account standing next to the animal is
+usually the Bedrock one, which typically is not op and therefore cannot run
+admin commands at all.
+
+If the animal's owner is an old UUID of the same person, the cleanest fix is
+not `claimpets` but adding that UUID to the group — it is, after all, the same
+person:
+
+```
+/crosslink add <group> <old-uuid>
+```
+
+`claimpets` is the blunt instrument for when you don't know the old UUID: it
+takes nearby tamed animals regardless of owner.
 
 ## How syncing works
 

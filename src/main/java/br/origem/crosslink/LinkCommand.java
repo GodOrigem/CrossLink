@@ -174,8 +174,12 @@ public final class LinkCommand implements CommandExecutor, TabCompleter {
                 }
             }
             case "pets" -> {
-                if (!(s instanceof Player p)) { err(s, "run this in game, next to the animal."); return true; }
-                int r = a.length >= 2 ? parseInt(a[1], 10) : 10;
+                // Aceita um jogador como alvo para poder ser usado do console:
+                // quem esta ao lado do bicho costuma ser a conta Bedrock, que
+                // normalmente nao e op e nao consegue rodar isto sozinha.
+                Player p = targetOf(s, a, 1);
+                if (p == null) return true;
+                int r = a.length >= 3 ? parseInt(a[2], 10) : (a.length >= 2 && !(s instanceof Player) ? 10 : (a.length >= 2 ? parseInt(a[1], 10) : 10));
                 List<String> found = engine.describePetsNear(p, r);
                 if (found.isEmpty()) { info(s, "no tameable animals within " + r + " blocks."); return true; }
                 info(s, found.size() + " animal(s) within " + r + " blocks:");
@@ -184,12 +188,21 @@ public final class LinkCommand implements CommandExecutor, TabCompleter {
                 info(s, "that is not linked -- use /" + label + " claimpets to adopt it.");
             }
             case "claimpets" -> {
-                if (!(s instanceof Player p)) { err(s, "run this in game, next to the animal."); return true; }
-                if (groups.of(p.getUniqueId()) == null) { err(s, "you are not in a linked group."); return true; }
-                int r = a.length >= 2 ? parseInt(a[1], 10) : 10;
+                Player p = targetOf(s, a, 1);
+                if (p == null) return true;
+                if (groups.of(p.getUniqueId()) == null) { err(s, p.getName() + " is not in a linked group."); return true; }
+                int r = a.length >= 3 ? parseInt(a[2], 10) : (a.length >= 2 && !(s instanceof Player) ? 10 : (a.length >= 2 ? parseInt(a[1], 10) : 10));
                 int n = engine.claimPetsNear(p, r);
                 if (n == 0) info(s, "no animal to adopt within " + r + " blocks.");
                 else ok(s, n + " animal(s) now belong to you and your linked account.");
+            }
+            case "retargetpets" -> {
+                Player p = targetOf(s, a, 1);
+                if (p == null) return true;
+                LinkGroup g = groups.of(p.getUniqueId());
+                if (g == null) { err(s, p.getName() + " is not in a linked group."); return true; }
+                engine.retargetPets(g, p);
+                ok(s, "pets around the world reassigned to " + p.getName() + ".");
             }
             case "reload" -> {
                 plugin.reloadAll();
@@ -198,6 +211,27 @@ public final class LinkCommand implements CommandExecutor, TabCompleter {
             default -> usage(s, label);
         }
         return true;
+    }
+
+    /**
+     * Resolve em quem o comando age.
+     *
+     * No console e obrigatorio nomear o jogador; em jogo, o proprio executor e
+     * o alvo, e nomear outro continua valendo. Isso e o que permite a um admin
+     * agir pela conta Bedrock, que costuma nao ter permissao para rodar nada.
+     */
+    private Player targetOf(CommandSender s, String[] a, int idx) {
+        if (a.length > idx) {
+            Player byName = Bukkit.getPlayerExact(a[idx]);
+            if (byName != null) return byName;
+            if (!(s instanceof Player)) {
+                err(s, "'" + a[idx] + "' is not online.");
+                return null;
+            }
+        }
+        if (s instanceof Player self) return self;
+        err(s, "from console, name the player: /" + "crosslink " + a[0] + " <player> [radius]");
+        return null;
     }
 
     private static int parseInt(String v, int fallback) {
@@ -220,8 +254,9 @@ public final class LinkCommand implements CommandExecutor, TabCompleter {
         info(s, "/" + label + " sync <player>   - force this one as source of truth");
         info(s, "/" + label + " primary <group> <player> - set the account that owns the data");
         info(s, "/" + label + " resetprompt <player> - make the Bedrock prompt show again");
-        info(s, "/" + label + " pets [radius]      - who owns the animals around you");
-        info(s, "/" + label + " claimpets [radius] - adopt them into your group");
+        info(s, "/" + label + " pets [player] [radius]      - who owns the animals around them");
+        info(s, "/" + label + " claimpets [player] [radius]  - adopt them into the group");
+        info(s, "/" + label + " retargetpets [player]        - reassign this group's pets world-wide");
         info(s, "/" + label + " backups <player>");
         info(s, "/" + label + " restore <player> [file]");
         info(s, "/" + label + " list");
@@ -234,11 +269,13 @@ public final class LinkCommand implements CommandExecutor, TabCompleter {
                                       String label, String[] a) {
         if (a.length == 1) {
             return filter(List.of("create", "add", "remove", "sync", "primary", "backups",
-                    "restore", "resetprompt", "pets", "claimpets", "list", "delete", "reload"), a[0]);
+                    "restore", "resetprompt", "pets", "claimpets", "retargetpets", "list", "delete", "reload"), a[0]);
         }
         if (a.length == 2) {
             if (a[0].equalsIgnoreCase("sync") || a[0].equalsIgnoreCase("restore")
-                    || a[0].equalsIgnoreCase("backups") || a[0].equalsIgnoreCase("resetprompt")) {
+                    || a[0].equalsIgnoreCase("backups") || a[0].equalsIgnoreCase("resetprompt")
+                    || a[0].equalsIgnoreCase("pets") || a[0].equalsIgnoreCase("claimpets")
+                    || a[0].equalsIgnoreCase("retargetpets")) {
                 return filter(onlineNames(), a[1]);
             }
             List<String> names = new ArrayList<>();

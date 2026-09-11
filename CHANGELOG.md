@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.0-beta.5
+
+- `pets`, `claimpets` and the new `retargetpets` accept a player name, so they
+  work **from the console**. The account standing next to the animal is usually
+  the Bedrock one, which normally is not op and could not run them at all — the
+  commands were unusable exactly where they were needed.
+
 ## 1.1.0-beta.4
 
 - Pet ownership is now read through `getOwnerUniqueId()` where available.
