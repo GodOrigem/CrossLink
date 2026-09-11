@@ -32,6 +32,12 @@ public final class PromptTracker {
         if (prompted.add(id)) dirty = true;
     }
 
+    /** Faz o convite automatico voltar a aparecer para esta conta. */
+    public boolean reset(UUID id) {
+        if (prompted.remove(id)) { dirty = true; return true; }
+        return false;
+    }
+
     public void load() {
         prompted.clear();
         if (!file.exists()) return;

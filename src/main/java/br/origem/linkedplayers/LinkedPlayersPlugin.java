@@ -21,6 +21,7 @@ public final class LinkedPlayersPlugin extends JavaPlugin {
     private int sweepTask = -1;
 
     public BedrockUi bedrockUi() { return bedrockUi; }
+    public PromptTracker prompts() { return prompts; }
 
     @Override
     public void onEnable() {

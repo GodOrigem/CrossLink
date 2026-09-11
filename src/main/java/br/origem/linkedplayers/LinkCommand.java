@@ -174,6 +174,17 @@ public final class LinkCommand implements CommandExecutor, TabCompleter {
                 ok(s, "restaurado " + pick.getName() + " em " + target.getName() + ".");
                 info(s, "o estado anterior virou um backup novo, entao da pra desfazer.");
             }
+            case "resetprompt" -> {
+                if (a.length < 2) { err(s, "uso: /" + label + " resetprompt <jogador|uuid>"); return true; }
+                UUID id = resolve(s, a[1]);
+                if (id == null) return true;
+                if (plugin.prompts().reset(id)) {
+                    plugin.prompts().save();
+                    ok(s, "convite liberado. Reconecte a conta para o formulario aparecer.");
+                } else {
+                    info(s, "essa conta ainda nao tinha sido convidada -- o formulario ja apareceria.");
+                }
+            }
             case "reload" -> {
                 plugin.reloadAll();
                 ok(s, "config e grupos recarregados.");
@@ -197,6 +208,7 @@ public final class LinkCommand implements CommandExecutor, TabCompleter {
         info(s, "/" + label + " remove <grupo> <jogador|uuid>");
         info(s, "/" + label + " sync <jogador>   - forca este como fonte da verdade");
         info(s, "/" + label + " primary <grupo> <jogador> - define a conta dona dos dados");
+        info(s, "/" + label + " resetprompt <jogador> - faz o convite do Bedrock reaparecer");
         info(s, "/" + label + " backups <jogador>");
         info(s, "/" + label + " restore <jogador> [arquivo]");
         info(s, "/" + label + " list");
@@ -209,11 +221,13 @@ public final class LinkCommand implements CommandExecutor, TabCompleter {
                                       @NotNull String label, String[] a) {
         if (a.length == 1) {
             return filter(List.of("create", "add", "remove", "sync", "primary", "backups",
-                    "restore", "list", "delete", "reload"), a[0]);
+                    "restore", "resetprompt", "list", "delete", "reload"), a[0]);
         }
         if (a.length == 2) {
             if (a[0].equalsIgnoreCase("sync") || a[0].equalsIgnoreCase("restore")
-                    || a[0].equalsIgnoreCase("backups")) return filter(onlineNames(), a[1]);
+                    || a[0].equalsIgnoreCase("backups") || a[0].equalsIgnoreCase("resetprompt")) {
+                return filter(onlineNames(), a[1]);
+            }
             List<String> names = new ArrayList<>();
             groups.all().forEach(g -> names.add(g.name()));
             return filter(names, a[1]);

@@ -25,6 +25,10 @@ Self-service, sem admin.
 quer vincular. Ele aparece **uma única vez por conta**: quem recusar não é mais
 incomodado, e só volta a ver rodando `/link`.
 
+Se a pessoa recusar e depois mudar de ideia, `/link` resolve. Para fazer o
+convite automático reaparecer (útil ao testar), um admin usa
+`/plink resetprompt <jogador>`.
+
 O fluxo é em duas etapas, e isso é de propósito — é o que prova que a mesma
 pessoa controla as duas contas:
 
@@ -62,6 +66,7 @@ Exigem `linkedplayers.admin` (padrão: op).
 /plink sync <jogador>          # força este como fonte da verdade
 /plink list
 /plink delete <grupo>
+/plink resetprompt <jogador>   # faz o convite do Bedrock reaparecer
 /plink reload
 ```
 
