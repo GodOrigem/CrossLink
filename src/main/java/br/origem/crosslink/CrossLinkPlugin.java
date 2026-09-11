@@ -55,6 +55,7 @@ public final class CrossLinkPlugin extends JavaPlugin {
 
         getServer().getPluginManager().registerEvents(new SyncListener(this, engine, groups), this);
         getServer().getPluginManager().registerEvents(new JoinPrompt(this, groups, prompts), this);
+        getServer().getPluginManager().registerEvents(new PetListener(this, engine, groups), this);
 
         LinkCommand admin = new LinkCommand(this, groups, engine);
         var pc = getCommand("crosslink");

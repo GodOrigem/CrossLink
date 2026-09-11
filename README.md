@@ -232,10 +232,21 @@ not compete with it.
 
 ## Pets
 
-Wolves, cats, horses and parrots start recognising whichever account is online.
-A pet has exactly one owner, so the transfer only happens when **a single group
-member is online** — with both connected there is no way to decide, and nothing
-changes.
+Wolves, cats, horses and parrots follow **whichever linked account is currently
+playing**. A pet stores exactly one owner, so it cannot obey both at once — the
+owner becomes the last account in the group that showed activity, meaning it
+joined the server or interacted with the animal. Since it's the same person on
+both ends, following the active account is what matches expectation.
+
+Three triggers keep this working:
+
+| Trigger | Why it's needed |
+|---|---|
+| On join (delayed) | the full sweep waits for the player's chunks to load |
+| Chunk load | catches pets that were far away when the player joined |
+| Right-clicking the pet | immediate, no waiting for a sweep |
+
+Turn it off with `sync.pets: false`.
 
 ## How syncing works
 

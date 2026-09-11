@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.1.0-beta.3
+
+- **Fixed: pets did not recognise the account that was playing.** Three
+  separate faults: the transfer gave up whenever the other linked account was
+  also online (so it never ran for someone playing on both), it only ran at
+  join — when the player's chunks had not loaded yet, so the sweep found
+  nothing — and nothing ever ran afterwards.
+- Ownership now follows the **last active account** in the group, and is
+  refreshed on join (after chunks load), on chunk load, and on interacting with
+  the animal.
+
 ## 1.1.0-beta.2
 
 - **Fixed: the Java skin was lost after relogging.** It was applied once, at

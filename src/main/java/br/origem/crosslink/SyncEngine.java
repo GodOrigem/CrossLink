@@ -4,6 +4,7 @@ import org.bukkit.World;
 import br.origem.crosslink.compat.Compat;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.AnimalTamer;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Tameable;
 import org.bukkit.inventory.ItemStack;
@@ -31,6 +32,8 @@ public final class SyncEngine {
     private final Set<String> scheduled = new HashSet<>();
     /** Ultimo retrato conhecido de cada jogador, para detectar quem mexeu. */
     private final Map<UUID, Integer> lastSeen = new HashMap<>();
+    /** Grupo -> conta que deu sinal de vida por ultimo; dona dos pets. */
+    private final Map<String, UUID> active = new HashMap<>();
 
     public boolean syncInventory = true;
     public boolean syncEnderChest = true;
@@ -113,7 +116,14 @@ public final class SyncEngine {
             // Grupo sem estado e quem entrou nao e a primaria: nao toca em nada.
             lastSeen.put(p.getUniqueId(), capture(p).fingerprint());
         }
-        if (syncPets) retargetPets(g, p);
+        if (syncPets) {
+            // Marca ja, para o ChunkLoadEvent saber de quem sao os pets; a
+            // varredura completa espera os chunks do jogador carregarem.
+            setActive(g, p);
+            Schedulers.globalLater(plugin, () -> {
+                if (p.isOnline()) retargetPets(g, p);
+            }, 60);
+        }
     }
 
     /**
@@ -165,29 +175,71 @@ public final class SyncEngine {
         lastSeen.remove(p.getUniqueId());
     }
 
-    /** Pets de qualquer membro passam a reconhecer quem esta online. */
+    /**
+     * Pets reconhecem a conta que esta jogando agora.
+     *
+     * Um pet guarda um unico dono, entao nao da pra obedecer as duas contas ao
+     * mesmo tempo. A regra e: a dona passa a ser a ultima conta do grupo que deu
+     * sinal de vida -- entrou no servidor ou interagiu com o bicho. Como e a
+     * mesma pessoa nas duas pontas, seguir a conta ativa e o que corresponde a
+     * expectativa.
+     *
+     * Uma versao anterior desistia quando a outra conta tambem estava online, o
+     * que fazia o pet nunca trocar de dono justamente para quem joga nas duas.
+     */
+    public void setActive(LinkGroup g, Player p) {
+        if (g != null && p != null) active.put(g.name(), p.getUniqueId());
+    }
+
+    public Player activeMember(LinkGroup g) {
+        UUID id = active.get(g.name());
+        if (id == null) return null;
+        Player p = plugin.getServer().getPlayer(id);
+        return (p != null && p.isOnline()) ? p : null;
+    }
+
+    /** Varre todos os mundos. Custa caro, entao so na entrada do jogador. */
     public void retargetPets(LinkGroup g, Player to) {
-        if (g == null || to == null) return;
-        // Com mais de um membro online nao da pra decidir; pet so tem um dono.
-        for (UUID id : g.members().keySet()) {
-            if (id.equals(to.getUniqueId())) continue;
-            Player other = plugin.getServer().getPlayer(id);
-            if (other != null && other.isOnline()) return;
-        }
+        if (!syncPets || g == null || to == null) return;
+        setActive(g, to);
         int changed = 0;
         for (World w : plugin.getServer().getWorlds()) {
             for (Tameable t : w.getEntitiesByClass(Tameable.class)) {
-                AnimalTamer owner = t.getOwner();
-                if (owner == null) continue;
-                UUID oid = owner.getUniqueId();
-                if (oid.equals(to.getUniqueId()) || !g.has(oid)) continue;
-                t.setOwner(to);
-                changed++;
+                if (retargetOne(t, g, to)) changed++;
             }
         }
         if (changed > 0) {
             plugin.getLogger().info("pets transferred to " + to.getName() + ": " + changed);
         }
+    }
+
+    /**
+     * Varre so as entidades recem-carregadas.
+     *
+     * E o que resolve o pet distante: na entrada do jogador o chunk dele ainda
+     * nem tinha carregado, entao a varredura global nao o encontrava.
+     */
+    public void retargetPetsIn(Entity[] entities) {
+        if (!syncPets) return;
+        for (Entity e : entities) {
+            if (!(e instanceof Tameable t)) continue;
+            AnimalTamer owner = t.getOwner();
+            if (owner == null) continue;
+            LinkGroup g = groups.of(owner.getUniqueId());
+            if (g == null) continue;
+            Player to = activeMember(g);
+            if (to != null) retargetOne(t, g, to);
+        }
+    }
+
+    /** Transferencia pontual. Retorna true quando de fato mudou de dono. */
+    public boolean retargetOne(Tameable t, LinkGroup g, Player to) {
+        AnimalTamer owner = t.getOwner();
+        if (owner == null) return false;
+        UUID oid = owner.getUniqueId();
+        if (oid.equals(to.getUniqueId()) || !g.has(oid)) return false;
+        t.setOwner(to);
+        return true;
     }
 
     public SharedState capture(Player p) {
