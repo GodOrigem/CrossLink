@@ -1,4 +1,4 @@
-package br.origem.linkedplayers;
+package br.origem.crosslink;
 
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;

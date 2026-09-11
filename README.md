@@ -1,250 +1,254 @@
-# LinkedPlayers
+# CrossLink
 
-Vincula uma conta **Bedrock** e uma **Java** no mesmo personagem: inventário,
-ender chest, XP, pets e skin compartilhados — **inclusive com as duas online ao
-mesmo tempo**.
+Link a **Bedrock** and a **Java** account into one character: shared inventory,
+ender chest, XP, pets and skin — **even with both accounts online at the same
+time**.
 
-> ### ⚠️ Status: não mantido ativamente
+> ### ⚠️ Status: not actively maintained
 >
-> Este plugin foi escrito para um servidor específico e é publicado porque pode
-> ser útil para outras pessoas. **Não há garantia de atualizações, correções ou
-> suporte.** Issues e pull requests podem demorar ou não ser respondidos.
+> This plugin was written for one specific server and is published because it
+> may be useful to others. **There is no guarantee of updates, fixes or
+> support.** Issues and pull requests may take a long time, or never be
+> answered.
 >
-> O código é MIT: sinta-se à vontade para forkar, modificar e publicar sua
-> própria versão. Se você mantiver um fork ativo, abra uma issue que eu aponto
-> para ele aqui.
+> The code is MIT: fork it, change it, publish your own version. If you keep an
+> active fork, open an issue and I'll point people to it from here.
 >
-> Testado em **Paper 26.2** com **Floodgate 2.2.5** e **Geyser 2.11.2**.
-> Versões diferentes podem exigir ajustes.
+> Tested on **Paper 26.2** with **Floodgate 2.2.5** and **Geyser 2.11.2**.
+> Other versions may need adjustments.
 
 ---
 
-## O problema que ele resolve
+## Do you actually need this?
 
-O Floodgate já tem linking nativo, e **ele é melhor se você não precisar das
-duas contas online juntas**: a conta Bedrock passa a *ser* a Java, mesma UUID,
-tudo compartilhado sem plugin nenhum. Se esse é o seu caso, use o Floodgate e
-ignore este projeto.
+Floodgate already has native account linking, and **it is the better option if
+you don't need both accounts online at once**: the Bedrock account *becomes*
+the Java one, same UUID, everything shared with no plugin at all. If that fits
+you, use Floodgate and ignore this project.
 
-O problema é esse "mesma UUID": uma UUID é uma sessão. Ao entrar com a segunda
-conta, o servidor derruba a primeira com *"You logged in from another
-location"*.
+The catch is that "same UUID": one UUID is one session. Logging in with the
+second account kicks the first with *"You logged in from another location"*.
 
-Este plugin mantém as UUIDs separadas e espelha o estado entre elas. É o que
-permite, por exemplo, deixar o personagem numa fazenda pelo celular enquanto
-joga no PC com a mesma conta.
+CrossLink keeps the UUIDs separate and mirrors state between them. That's what
+lets you, say, leave your character farming on the phone while playing the same
+character on PC.
 
-## Requisitos
+## Requirements
 
 | | |
 |---|---|
-| Servidor | Paper 26.2 (ou compatível) |
+| Server | Paper 26.2 (or compatible) |
 | Java | 25 |
-| Floodgate | opcional — sem ele, o vínculo funciona só por comando de texto |
+| Floodgate | optional — without it, linking works through text commands only |
 
-## Instalação
+## Installation
 
-1. Baixe o `LinkedPlayers-x.y.z.jar` em [Releases](../../releases)
-2. Coloque em `plugins/`
-3. Reinicie o servidor
+1. Download `CrossLink-x.y.z.jar` from [Releases](../../releases)
+2. Drop it into `plugins/`
+3. Restart the server
 
-Não há configuração obrigatória. O `config.yml` é gerado no primeiro boot.
+No configuration is required. `config.yml` is generated on first boot.
 
-## Como o jogador vincula
+## How players link
 
-Self-service, sem admin.
+Self-service, no admin needed.
 
-**No Bedrock**, um formulário nativo aparece no primeiro login perguntando se
-quer vincular. Ele aparece **uma única vez por conta**: quem recusar não é mais
-incomodado, e só volta a ver rodando `/link`. Um admin pode reabrir com
-`/plink resetprompt <jogador>`.
+**On Bedrock**, a native form pops up on first join asking whether they want to
+link. It shows **once per account**: anyone who declines is not bothered again
+and only sees it again by running `/link`. An admin can reopen it with
+`/crosslink resetprompt <player>`.
 
-O fluxo tem duas etapas, e isso é de propósito — é o que prova que a mesma
-pessoa controla as duas contas:
+The flow has two steps on purpose — that's what proves the same person controls
+both accounts:
 
 ```
-Na conta A:  /link <nick da conta B>     → recebe um código de 6 dígitos
-Na conta B:  /link <código>              → vinculado
+On account A:  /link <name of account B>    → gets a 6-digit code
+On account B:  /link <code>                 → linked
 ```
 
-Sem essa confirmação cruzada, qualquer um se vincularia ao inventário alheio
-digitando o nick da vítima.
+Without that cross-confirmation, anyone could link themselves to someone else's
+inventory just by typing the victim's name.
 
-| Comando | O que faz |
+| Command | What it does |
 |---|---|
-| `/link` | abre o formulário (Bedrock) ou mostra a ajuda (Java) |
-| `/link <nick>` | inicia o vínculo com essa conta |
-| `/link <código>` | confirma um vínculo pendente |
-| `/link status` | mostra o vínculo atual |
+| `/link` | opens the form (Bedrock) or prints help (Java) |
+| `/link <name>` | starts a link with that account |
+| `/link <code>` | confirms a pending link |
+| `/link status` | shows the current link |
 
-### Por que não login da Microsoft
+### Why not Microsoft login
 
-Seria o jeito canônico de provar posse da conta Java, mas exige registrar uma
-aplicação no Azure AD e obter acesso ao escopo da API do Minecraft — e **cada
-pessoa que hospedasse o plugin teria que fazer o próprio cadastro**. O código
-cruzado resolve o mesmo problema sem infraestrutura externa.
+It would be the canonical way to prove ownership of the Java account, but it
+requires registering an Azure AD application and getting access to the
+Minecraft API scope — and **everyone hosting the plugin would have to register
+their own**. The cross-code solves the same problem with no external
+infrastructure.
 
-## Comandos de admin
+## Admin commands
 
-Exigem a permissão `linkedplayers.admin` (padrão: op).
+Require the `crosslink.admin` permission (default: op). Aliases: `/clink`,
+`/plink`.
 
-| Comando | O que faz |
+| Command | What it does |
 |---|---|
-| `/plink create <grupo>` | cria um grupo vazio |
-| `/plink add <grupo> <jogador\|uuid>` | adiciona alguém ao grupo |
-| `/plink remove <grupo> <jogador\|uuid>` | tira alguém do grupo |
-| `/plink primary <grupo> <jogador>` | define a conta dona dos dados |
-| `/plink sync <jogador>` | força este como fonte da verdade |
-| `/plink backups <jogador>` | lista os backups disponíveis |
-| `/plink restore <jogador> [arquivo]` | restaura um backup |
-| `/plink resetprompt <jogador>` | faz o convite do Bedrock reaparecer |
-| `/plink list` | lista grupos e membros |
-| `/plink delete <grupo>` | apaga o grupo (ninguém perde itens) |
-| `/plink reload` | recarrega config e grupos |
+| `/crosslink create <group>` | create an empty group |
+| `/crosslink add <group> <player\|uuid>` | add someone to a group |
+| `/crosslink remove <group> <player\|uuid>` | remove someone from a group |
+| `/crosslink primary <group> <player>` | set the account that owns the data |
+| `/crosslink sync <player>` | force this one as source of truth |
+| `/crosslink backups <player>` | list available backups |
+| `/crosslink restore <player> [file]` | restore a backup |
+| `/crosslink resetprompt <player>` | make the Bedrock prompt show again |
+| `/crosslink list` | list groups and members |
+| `/crosslink delete <group>` | delete a group (nobody loses items) |
+| `/crosslink reload` | reload config and groups |
 
-Qualquer número de grupos, qualquer número de membros por grupo — não está
-limitado a pares Bedrock/Java.
+Any number of groups, any number of members per group — it is not limited to
+Bedrock/Java pairs.
 
-### Adicionando conta Bedrock offline
+### Adding an offline Bedrock account
 
-`/plink add <grupo> .NickBedrock` **não funciona com o jogador offline**, e isso
-é proposital. Com `online-mode=true`, resolver nome offline consultaria a
-Mojang, onde uma conta Floodgate não existe: voltaria uma UUID errada e o
-vínculo apontaria para o nada, sem erro nenhum.
+`/crosslink add <group> .SomeBedrockName` **does not work while the player is
+offline**, and that is deliberate. With `online-mode=true`, resolving a name
+offline would query Mojang, where a Floodgate account does not exist: it would
+return a wrong UUID and the link would silently point at nothing.
 
-Peça para o jogador entrar, ou passe a UUID Floodgate direto — elas começam com
+Ask them to join first, or pass the Floodgate UUID directly — those start with
 `00000000-0000-0000-`.
 
-## Conta primária
+## The primary account
 
-Todo grupo tem uma **conta primária** — na prática a conta Java, porque é a
-única que existe na Mojang. É nela que a playerdata de verdade fica; as
-secundárias são espelho.
+Every group has a **primary account** — in practice the Java one, since it's
+the only account that exists at Mojang. That's where the real playerdata lives;
+the others mirror it.
 
-Duas regras decorrem disso, e as duas existem por causa de bugs reais:
+Two rules follow from this, and both exist because of real bugs:
 
-**Quem entra adota, nunca sobrescreve.** Uma versão anterior tratava como
-"fonte da verdade" qualquer conta cujo estado diferisse do estado do grupo — o
-que inclui, sempre, uma conta recém-vinculada. O resultado foi um inventário
-Bedrock vazio apagando um inventário Java cheio. Agora uma conta só vira fonte
-quando mudou em relação ao **próprio retrato anterior**.
+**Whoever joins adopts, never overwrites.** An earlier version treated as
+"source of truth" any account whose state differed from the group state — which
+always includes a freshly linked account. The result was an empty Bedrock
+inventory wiping a full Java one. Now an account only becomes the source when
+it changed relative to **its own previous snapshot**.
 
-**A secundária sai com a playerdata vazia.** Sem isso os itens existiriam em
-dois arquivos de jogador ao mesmo tempo, e bastaria remover o plugin para cada
-conta acordar com uma cópia — duplicando tudo. Com `clear-secondary-on-quit`
-ligado, remover o plugin deixa exatamente um dono.
+**The secondary leaves with empty playerdata.** Without that, items would exist
+in two player files at once, and simply removing the plugin would leave each
+account holding a copy — duplicating everything. With `clear-secondary-on-quit`
+enabled, removing the plugin leaves exactly one owner.
 
 ## Backups
 
-Antes de qualquer escrita destrutiva, o estado anterior vai para
-`plugins/LinkedPlayers/backups/<uuid>/<timestamp>.yml` (os 10 últimos por
-padrão).
+Before any destructive write, the previous state is saved to
+`plugins/CrossLink/backups/<uuid>/<timestamp>.yml` (10 most recent by default).
 
 ```
-/plink backups Origem_
-/plink restore Origem_
-/plink restore Origem_ 1757600000000.yml
+/crosslink backups Steve
+/crosslink restore Steve
+/crosslink restore Steve 1757600000000.yml
 ```
 
-Restaurar também gera backup, então dá para desfazer a restauração.
+Restoring also creates a backup, so a restore can itself be undone.
 
-## Configuração
+## Configuration
 
 ```yaml
 sync:
-  inventory: true      # mochila + armadura + offhand
+  inventory: true      # main inventory + armor + offhand
   ender-chest: true
-  xp: true             # nível, progresso e total
-  pets: true           # lobo, gato, cavalo, papagaio
-  health: false        # ver aviso abaixo
+  xp: true             # level, progress and total
+  pets: true           # wolf, cat, horse, parrot
+  health: false        # see warning below
   food: false
 
 safety:
-  clear-secondary-on-quit: true   # evita duplicação ao remover o plugin
+  clear-secondary-on-quit: true   # prevents duplication if the plugin is removed
   backups-to-keep: 10
 
 link:
-  prompt-on-first-join: true      # formulário automático no Bedrock
+  prompt-on-first-join: true      # automatic Bedrock form
   prompt-delay-ticks: 60
   code-timeout-seconds: 300
   copy-java-skin: true
 
-sweep-interval-ticks: 20          # varredura de segurança (20 = 1 segundo)
+sweep-interval-ticks: 20          # safety sweep (20 = 1 second)
 save-interval-ticks: 6000
 ```
 
 ## Skin
 
-Ao vincular, a skin da conta Java é aplicada na conta Bedrock. A textura é
-buscada no sessionserver da Mojang **com assinatura** (`unsigned=false`) — sem
-a assinatura o cliente rejeita a textura e o jogador aparece com a skin padrão.
+On link, the Java account's skin is applied to the Bedrock account. The texture
+is fetched from Mojang's session server **with its signature**
+(`unsigned=false`) — without the signature the client rejects the texture and
+the player shows up with the default skin.
 
 ## Pets
 
-Lobo, gato, cavalo e papagaio passam a reconhecer a conta que estiver online.
-Um pet só tem um dono, então a transferência só acontece quando há **apenas um
-membro do grupo online** — com os dois conectados não há como decidir, e nada
-muda.
+Wolves, cats, horses and parrots start recognising whichever account is online.
+A pet has exactly one owner, so the transfer only happens when **a single group
+member is online** — with both connected there is no way to decide, and nothing
+changes.
 
-## Como a sincronização funciona
+## How syncing works
 
-Dois caminhos alimentam o espelhamento:
+Two paths feed the mirroring:
 
-1. **Eventos** — clique em inventário, drop, pickup, quebra de item, colocar
-   bloco, comer, XP, dano. Marca quem agiu e propaga no tick seguinte, já com o
-   efeito aplicado.
-2. **Varredura periódica** (1s por padrão) — compara o retrato de cada membro
-   online com o **próprio retrato anterior** e propaga quem mudou. Rede de
-   segurança para o que nenhum evento cobriu.
+1. **Events** — inventory clicks, drops, pickups, item breaks, block placement,
+   eating, XP, damage. These mark who acted, and the change propagates on the
+   next tick, once the effect has landed.
+2. **Periodic sweep** (1s by default) — compares each online member's snapshot
+   against **its own previous snapshot** and propagates whoever changed. A
+   safety net for anything no event covered.
 
-Um conjunto `applying` evita laço infinito: enquanto o plugin escreve no
-inventário de alguém, os eventos que isso dispara são ignorados.
+An `applying` set prevents infinite loops: while the plugin writes to someone's
+inventory, the events that triggers are ignored.
 
-Morte tem tratamento próprio. O inventário do morto é esvaziado *depois* do
-evento, então o sync é adiado um tick — sem isso os itens cairiam no chão **e**
-continuariam no inventário espelhado do outro, duplicando.
+Death gets its own handling. The dead player's inventory is cleared *after* the
+event, so the sync is delayed by one tick — without that the items would drop
+on the ground **and** stay in the mirrored inventory, duplicating.
 
-## Limites conhecidos
+## Known limits
 
-**Vida e fome vêm desligados.** Com `health: true`, dano em um aparece no outro
-na hora e morte mata os dois. Ligue só se for isso mesmo que você quer.
+**Health and food are off by default.** With `health: true`, damage on one
+shows up on the other instantly — and death kills both. Turn it on only if
+that's genuinely what you want.
 
-**Ação simultânea conflitante pode perder item.** Se as duas contas mexerem no
-inventário dentro do mesmo intervalo de varredura, uma mudança vence e a outra
-se perde. Alternando entre as contas não aparece; as duas organizando baús ao
-mesmo tempo, aparece. É inerente a inventário compartilhado.
+**Conflicting simultaneous actions can lose an item.** If both accounts touch
+the inventory within the same sweep interval, one change wins and the other is
+lost. Alternating between accounts never shows this; both sorting chests at the
+same time does. It is inherent to a shared inventory.
 
-**Não compartilha:** posição, dimensão, advancements, efeitos de poção,
-gamemode. Cada conta continua sendo uma entidade própria no mundo.
+**Not shared:** position, dimension, advancements, potion effects, gamemode.
+Each account remains its own entity in the world.
 
-## Build
+## Building
 
 ```bash
 ./gradlew build
 ```
 
-Precisa de JDK 25. O jar sai em `build/libs/`.
+Requires JDK 25. The jar lands in `build/libs/`.
 
-Todas as dependências são `compileOnly` — nada de terceiros vai embutido no
+All dependencies are `compileOnly` — nothing third-party is bundled into the
 jar.
 
-### Estrutura
+### Layout
 
-| Arquivo | Responsabilidade |
+| File | Responsibility |
 |---|---|
-| `LinkedPlayersPlugin` | ciclo de vida, config, ligação das peças |
-| `SyncEngine` | captura, aplica e decide quem é a fonte da verdade |
-| `SyncListener` | eventos que marcam "alguém mexeu" |
-| `LinkService` | fluxo de vínculo em duas etapas |
-| `LinkGroup` / `GroupManager` | modelo e persistência dos grupos |
-| `SharedState` | o que é compartilhado, e sua serialização |
-| `BedrockUi` | formulários nativos (só carrega se houver Floodgate) |
-| `SkinService` | busca e aplica a skin da conta Java |
-| `PromptTracker` | quem já viu o convite automático |
-| `LinkCommand` / `PlayerLinkCommand` | `/plink` e `/link` |
+| `CrossLinkPlugin` | lifecycle, config, wiring |
+| `SyncEngine` | captures, applies, decides who is the source of truth |
+| `SyncListener` | events that mark "someone acted" |
+| `LinkService` | the two-step linking flow |
+| `LinkGroup` / `GroupManager` | group model and persistence |
+| `SharedState` | what is shared, and how it serialises |
+| `BedrockUi` | native forms (only loaded when Floodgate is present) |
+| `SkinService` | fetches and applies the Java account's skin |
+| `PromptTracker` | who has already seen the automatic prompt |
+| `LinkCommand` / `PlayerLinkCommand` | `/crosslink` and `/link` |
 
-## Licença
+Source comments are in Portuguese; user-facing messages are in English.
 
-MIT. Veja [LICENSE](LICENSE).
+## License
 
-Desenvolvido com a ajuda do [Claude Code](https://claude.com/claude-code).
+MIT. See [LICENSE](LICENSE).
+
+Built with the help of [Claude Code](https://claude.com/claude-code).

@@ -1,4 +1,4 @@
-package br.origem.linkedplayers;
+package br.origem.crosslink;
 
 import org.bukkit.configuration.file.YamlConfiguration;
 
@@ -46,7 +46,7 @@ public final class PromptTracker {
             try {
                 prompted.add(UUID.fromString(raw));
             } catch (IllegalArgumentException ignored) {
-                log.warning("UUID invalida em prompted.yml: " + raw);
+                log.warning("invalid UUID in prompted.yml: " + raw);
             }
         }
     }
@@ -61,7 +61,7 @@ public final class PromptTracker {
             yml.save(file);
             dirty = false;
         } catch (IOException ex) {
-            log.log(Level.SEVERE, "falha ao salvar prompted.yml", ex);
+            log.log(Level.SEVERE, "failed to save prompted.yml", ex);
         }
     }
 }

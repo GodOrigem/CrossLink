@@ -1,4 +1,4 @@
-package br.origem.linkedplayers;
+package br.origem.crosslink;
 
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -41,13 +41,13 @@ public final class BedrockUi {
     /** Convite automatico do primeiro login: modal sim/nao. */
     public void offerLink(Player p, Runnable onAccept, Runnable onDecline) {
         ModalForm form = ModalForm.builder()
-                .title("Vincular conta")
-                .content("Voce pode vincular esta conta Bedrock a uma conta Java.\n\n"
-                        + "As duas passam a dividir inventario, ender chest e XP, "
-                        + "e sua skin Java e aplicada aqui.\n\n"
-                        + "Quer vincular agora?")
-                .button1("Vincular")
-                .button2("Agora nao")
+                .title("Link account")
+                .content("You can link this Bedrock account to a Java account.\n\n"
+                        + "Both will share inventory, ender chest and XP, "
+                        + "and your Java skin is applied here.\n\n"
+                        + "Link now?")
+                .button1("Link")
+                .button2("Not now")
                 .validResultHandler(res -> guarded(p, () -> {
                     if (res.clickedFirst()) chain(p, onAccept); else onDecline.run();
                 }))
@@ -67,8 +67,8 @@ public final class BedrockUi {
      */
     public void askJavaName(Player p, Consumer<String> onSubmit, Runnable onCancel) {
         CustomForm form = CustomForm.builder()
-                .title("Vincular conta Java")
-                .input("Digite o nick EXATO da sua conta Java", "Steve")
+                .title("Link Java account")
+                .input("Type the EXACT name of your Java account", "Steve")
                 .validResultHandler(res -> guarded(p, () -> {
                     String name = res.asInput(0);
                     if (name == null || name.isBlank()) onCancel.run();
@@ -82,14 +82,14 @@ public final class BedrockUi {
     /** Mostra o codigo gerado, com instrucao. */
     public void showCode(Player p, String code, String javaName, long seconds) {
         ModalForm form = ModalForm.builder()
-                .title("Codigo de vinculo")
-                .content("Seu codigo:\n\n§l" + code + "§r\n\n"
-                        + "Entre na conta Java §l" + javaName + "§r e rode:\n"
+                .title("Link code")
+                .content("Your code:\n\n§l" + code + "§r\n\n"
+                        + "Log in as §l" + javaName + "§r and run:\n"
                         + "§l/link " + code + "§r\n\n"
-                        + "Expira em " + (seconds / 60) + " minuto(s).\n"
-                        + "O codigo tambem esta no seu chat.")
-                .button1("Entendi")
-                .button2("Fechar")
+                        + "Expires in " + (seconds / 60) + " minute(s).\n"
+                        + "The code is in your chat too.")
+                .button1("Got it")
+                .button2("Close")
                 .validResultHandler(res -> { })
                 .closedOrInvalidResultHandler(() -> { })
                 .build();
@@ -101,7 +101,7 @@ public final class BedrockUi {
                 .title(title)
                 .content(message)
                 .button1("Ok")
-                .button2("Fechar")
+                .button2("Close")
                 .validResultHandler(res -> { })
                 .closedOrInvalidResultHandler(() -> { })
                 .build();
@@ -119,7 +119,7 @@ public final class BedrockUi {
         try {
             FloodgateApi.getInstance().sendForm(p.getUniqueId(), form);
         } catch (Throwable t) {
-            plugin.getLogger().warning("falha ao enviar formulario para " + p.getName() + ": " + t);
+            plugin.getLogger().warning("failed to send form to " + p.getName() + ": " + t);
         }
     }
 
@@ -134,7 +134,7 @@ public final class BedrockUi {
             try {
                 r.run();
             } catch (Throwable t) {
-                plugin.getLogger().log(Level.SEVERE, "erro tratando formulario de " + p.getName(), t);
+                plugin.getLogger().log(Level.SEVERE, "error handling form from " + p.getName(), t);
                 if (p.isOnline()) {
                     p.sendMessage("§c[Vinculo] Algo deu errado. Tente /link novamente.");
                 }

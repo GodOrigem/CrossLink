@@ -1,4 +1,4 @@
-package br.origem.linkedplayers;
+package br.origem.crosslink;
 
 import org.bukkit.entity.Player;
 
@@ -41,15 +41,15 @@ public final class LinkService {
     /** Etapa 1: conta A pede vinculo com o nick da conta B. */
     public Result request(Player requester, String targetName) {
         if (targetName == null || targetName.isBlank()) {
-            return new Result.Error("Informe o nick da outra conta.");
+            return new Result.Error("Tell me the other account's name.");
         }
         if (targetName.equalsIgnoreCase(requester.getName())) {
-            return new Result.Error("Voce nao pode vincular uma conta com ela mesma.");
+            return new Result.Error("You cannot link an account to itself.");
         }
         LinkGroup existing = groups.of(requester.getUniqueId());
         if (existing != null) {
-            return new Result.Error("Sua conta ja esta vinculada (grupo '" + existing.name()
-                    + "'). Peca a um admin para desfazer antes.");
+            return new Result.Error("Your account is already linked (group '" + existing.name()
+                    + "'). Ask an admin to unlink it first.");
         }
         purge();
         byCode.values().removeIf(r -> r.requesterId().equals(requester.getUniqueId()));
@@ -64,22 +64,22 @@ public final class LinkService {
     public Result confirm(Player confirmer, String code) {
         purge();
         LinkRequest req = byCode.get(code == null ? "" : code.trim());
-        if (req == null) return new Result.Error("Codigo invalido ou expirado.");
+        if (req == null) return new Result.Error("Invalid or expired code.");
 
         if (!req.targetName().equalsIgnoreCase(confirmer.getName())) {
-            return new Result.Error("Esse codigo foi gerado para a conta '" + req.targetName()
-                    + "', e voce esta em '" + confirmer.getName() + "'.");
+            return new Result.Error("That code was issued for account '" + req.targetName()
+                    + "', but you are on '" + confirmer.getName() + "'.");
         }
         if (req.requesterId().equals(confirmer.getUniqueId())) {
-            return new Result.Error("As duas pontas sao a mesma conta.");
+            return new Result.Error("Both ends are the same account.");
         }
         if (groups.of(confirmer.getUniqueId()) != null) {
-            return new Result.Error("Sua conta ja esta vinculada.");
+            return new Result.Error("Your account is already linked.");
         }
         // A conta que pediu pode ter sido vinculada por um admin nesse meio tempo.
         if (groups.of(req.requesterId()) != null) {
             byCode.remove(code);
-            return new Result.Error("A conta '" + req.requesterName() + "' foi vinculada enquanto isso.");
+            return new Result.Error("Account '" + req.requesterName() + "' got linked in the meantime.");
         }
 
         byCode.remove(code);
@@ -88,7 +88,7 @@ public final class LinkService {
                 .replaceAll("[^a-z0-9_-]", "");
         LinkGroup g = groups.byName(groupName);
         if (g == null) g = groups.create(groupName);
-        if (g == null) return new Result.Error("Nao consegui criar o grupo '" + groupName + "'.");
+        if (g == null) return new Result.Error("Could not create group '" + groupName + "'.");
 
         groups.addMember(g, req.requesterId(), req.requesterName());
         groups.addMember(g, confirmer.getUniqueId(), confirmer.getName());

@@ -1,4 +1,4 @@
-package br.origem.linkedplayers;
+package br.origem.crosslink;
 
 import java.util.UUID;
 

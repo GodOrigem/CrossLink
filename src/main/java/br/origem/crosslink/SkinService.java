@@ -1,4 +1,4 @@
-package br.origem.linkedplayers;
+package br.origem.crosslink;
 
 import com.destroystokyo.paper.profile.PlayerProfile;
 import com.destroystokyo.paper.profile.ProfileProperty;
@@ -46,14 +46,14 @@ public final class SkinService {
             try {
                 tex = fetch(javaId);
             } catch (Exception ex) {
-                plugin.getLogger().log(Level.WARNING, "falha ao buscar skin de " + javaId, ex);
+                plugin.getLogger().log(Level.WARNING, "failed to fetch skin for " + javaId, ex);
                 plugin.getServer().getScheduler().runTask(plugin,
-                        () -> onError.accept("nao consegui falar com o servidor da Mojang"));
+                        () -> onError.accept("could not reach Mojang servers"));
                 return;
             }
             if (tex == null) {
                 plugin.getServer().getScheduler().runTask(plugin,
-                        () -> onError.accept("a conta Java nao tem skin publica"));
+                        () -> onError.accept("the Java account has no public skin"));
                 return;
             }
             plugin.getServer().getScheduler().runTask(plugin, () -> {
@@ -62,8 +62,8 @@ public final class SkinService {
                     apply(target, tex);
                     onSuccess.run();
                 } catch (Exception ex) {
-                    plugin.getLogger().log(Level.WARNING, "falha ao aplicar skin", ex);
-                    onError.accept("nao consegui aplicar a skin");
+                    plugin.getLogger().log(Level.WARNING, "failed to apply skin", ex);
+                    onError.accept("could not apply the skin");
                 }
             });
         });

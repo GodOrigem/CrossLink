@@ -1,4 +1,4 @@
-package br.origem.linkedplayers;
+package br.origem.crosslink;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -15,11 +15,11 @@ import java.util.UUID;
 /** /link -- self-service, qualquer jogador usa. */
 public final class PlayerLinkCommand implements CommandExecutor {
 
-    private final LinkedPlayersPlugin plugin;
+    private final CrossLinkPlugin plugin;
     private final GroupManager groups;
     private final LinkService links;
 
-    public PlayerLinkCommand(LinkedPlayersPlugin plugin, GroupManager groups, LinkService links) {
+    public PlayerLinkCommand(CrossLinkPlugin plugin, GroupManager groups, LinkService links) {
         this.plugin = plugin;
         this.groups = groups;
         this.links = links;
@@ -34,7 +34,7 @@ public final class PlayerLinkCommand implements CommandExecutor {
     public boolean onCommand(@NotNull CommandSender s, @NotNull Command c,
                              @NotNull String label, String[] a) {
         if (!(s instanceof Player p)) {
-            msg(s, "Esse comando e para jogadores. No console use /plink.", NamedTextColor.RED);
+            msg(s, "This command is for players. Use /crosslink from console.", NamedTextColor.RED);
             return true;
         }
 
@@ -45,8 +45,8 @@ public final class PlayerLinkCommand implements CommandExecutor {
             if (plugin.bedrockUi() != null && BedrockUi.isBedrock(p.getUniqueId())) {
                 plugin.startBedrockFlow(p);
             } else {
-                msg(p, "Para vincular: /link <nick da outra conta>", NamedTextColor.WHITE);
-                msg(p, "Para confirmar: /link <codigo de 6 digitos>", NamedTextColor.WHITE);
+                msg(p, "To link: /link <other account name>", NamedTextColor.WHITE);
+                msg(p, "To confirm: /link <6-digit code>", NamedTextColor.WHITE);
             }
             return true;
         }
@@ -55,7 +55,7 @@ public final class PlayerLinkCommand implements CommandExecutor {
 
         if (arg.equalsIgnoreCase("status")) {
             LinkGroup g = groups.of(p.getUniqueId());
-            if (g == null) msg(p, "Sua conta nao esta vinculada.", NamedTextColor.WHITE);
+            if (g == null) msg(p, "Your account is not linked.", NamedTextColor.WHITE);
             else showStatus(p, g);
             return true;
         }
@@ -70,23 +70,23 @@ public final class PlayerLinkCommand implements CommandExecutor {
     }
 
     private void showStatus(Player p, LinkGroup g) {
-        msg(p, "Vinculada no grupo '" + g.name() + "':", NamedTextColor.GREEN);
+        msg(p, "Linked in group '" + g.name() + "':", NamedTextColor.GREEN);
         for (Map.Entry<UUID, String> e : g.members().entrySet()) {
             Player o = Bukkit.getPlayer(e.getKey());
-            String tag = e.getKey().equals(p.getUniqueId()) ? " (voce)"
+            String tag = e.getKey().equals(p.getUniqueId()) ? " (you)"
                     : (o != null && o.isOnline() ? " [online]" : "");
             msg(p, "  - " + e.getValue() + tag, NamedTextColor.WHITE);
         }
-        msg(p, "Para desfazer, peca a um admin (/plink remove).", NamedTextColor.GRAY);
+        msg(p, "To unlink, ask an admin (/crosslink remove).", NamedTextColor.GRAY);
     }
 
     void handle(Player p, LinkService.Result r) {
         switch (r) {
             case LinkService.Result.CodeIssued ci -> {
-                msg(p, "Codigo: " + ci.code(), NamedTextColor.GOLD);
-                msg(p, "Entre na conta '" + ci.targetName() + "' e rode: /link " + ci.code(),
+                msg(p, "Code: " + ci.code(), NamedTextColor.GOLD);
+                msg(p, "Log in as '" + ci.targetName() + "' and run: /link " + ci.code(),
                         NamedTextColor.WHITE);
-                msg(p, "Expira em " + (ci.seconds() / 60) + " minuto(s).", NamedTextColor.GRAY);
+                msg(p, "Expires in " + (ci.seconds() / 60) + " minute(s).", NamedTextColor.GRAY);
                 if (plugin.bedrockUi() != null && BedrockUi.isBedrock(p.getUniqueId())) {
                     // Encadeado: o formulario do nick acabou de fechar agora.
                     plugin.bedrockUi().chain(p,
@@ -94,10 +94,10 @@ public final class PlayerLinkCommand implements CommandExecutor {
                 }
             }
             case LinkService.Result.Linked ln -> {
-                msg(p, "Vinculado com " + ln.otherName() + "!", NamedTextColor.GREEN);
-                msg(p, "Inventario, ender chest e XP agora sao compartilhados.", NamedTextColor.WHITE);
+                msg(p, "Linked with " + ln.otherName() + "!", NamedTextColor.GREEN);
+                msg(p, "Inventory, ender chest and XP are now shared.", NamedTextColor.WHITE);
                 Player other = Bukkit.getPlayer(ln.otherId());
-                if (other != null) msg(other, "Sua conta foi vinculada com " + p.getName() + ".",
+                if (other != null) msg(other, "Your account was linked with " + p.getName() + ".",
                         NamedTextColor.GREEN);
                 plugin.syncSkinForGroup(ln.group());
             }

@@ -1,35 +1,36 @@
 # Changelog
 
-## 1.2.1
-- `/plink resetprompt <jogador>` faz o convite automático do Bedrock reaparecer
+## 1.0.0 — first public release
 
-## 1.2.0
-- **Corrige perda de inventário ao vincular.** A varredura elegia como fonte da
-  verdade qualquer conta que diferisse do estado do grupo — e uma conta
-  recém-vinculada sempre difere. Um inventário Bedrock vazio sobrescrevia um
-  inventário Java cheio. Agora cada jogador tem o próprio retrato anterior, e
-  só vira fonte quem mudou em relação a si mesmo.
-- **Corrige duplicação ao remover o plugin.** A conta secundária agora sai com a
-  playerdata vazia; antes os itens existiam em dois arquivos ao mesmo tempo.
-- Grupos passam a ter conta primária, definida como a conta Java no vínculo
-- Backup automático antes de cada escrita destrutiva, com `/plink backups` e
-  `/plink restore`
-- `/plink primary` para trocar a conta dona dos dados
-- Pets passam a reconhecer a conta que estiver online
+Published as **CrossLink**. Everything below happened during internal
+development on a private server, and is kept here because two of the entries
+are data-loss bugs worth knowing about if you fork this.
 
-## 1.1.1
-- **Corrige formulário travado.** Labels também ocupam índice na resposta do
-  Cumulus, então `asInput(0)` lia o label e estourava `IllegalStateException`.
-  A exceção morria dentro do handler e o jogador ficava sem receber o código.
-- Formulário do código não era exibido: era enviado no mesmo instante em que o
-  anterior fechava, e o cliente Bedrock só mostra um por vez
-- Handlers passam a ser envolvidos por um guard que loga e avisa o jogador
+### Fixed before release
 
-## 1.1.0
-- Vínculo self-service com formulário nativo do Bedrock
-- Cópia da skin da conta Java para a Bedrock
-- Convite automático no primeiro login, uma vez por conta
+- **Inventory wiped on link.** The sweep elected as source of truth any account
+  whose state differed from the group state — and a freshly linked account
+  always differs. An empty Bedrock inventory overwrote a full Java one. Each
+  player now has its own previous snapshot, and only becomes the source when it
+  changed relative to itself.
+- **Duplication when removing the plugin.** Items lived in two player files at
+  once. The secondary account now leaves with empty playerdata, so exactly one
+  owner remains.
+- **Bedrock form froze.** Labels also take an index in Cumulus responses, so
+  `asInput(0)` read the label and threw `IllegalStateException`. The exception
+  died inside the handler and the player never got a code.
+- **Code form never showed.** It was sent at the same moment the previous form
+  was closing, and the Bedrock client only displays one at a time.
 
-## 1.0.0
-- Compartilhamento de inventário, ender chest e XP entre contas vinculadas
-- Comandos de admin `/plink`
+### Features
+
+- Shared inventory, ender chest and XP between linked accounts, with both
+  online simultaneously
+- Self-service linking with a native Bedrock form and cross-code confirmation
+- Java skin copied to the Bedrock account on link
+- Automatic prompt on first Bedrock join, once per account
+- Primary account per group; secondaries mirror it
+- Automatic backup before every destructive write, with `/crosslink backups`
+  and `/crosslink restore`
+- Pets recognise whichever linked account is online
+- Admin commands under `/crosslink` (aliases `/clink`, `/plink`)

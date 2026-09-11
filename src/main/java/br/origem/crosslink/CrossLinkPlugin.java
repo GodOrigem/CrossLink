@@ -1,4 +1,4 @@
-package br.origem.linkedplayers;
+package br.origem.crosslink;
 
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -9,7 +9,7 @@ import java.io.File;
 import java.util.Map;
 import java.util.UUID;
 
-public final class LinkedPlayersPlugin extends JavaPlugin {
+public final class CrossLinkPlugin extends JavaPlugin {
 
     private GroupManager groups;
     private SyncEngine engine;
@@ -36,9 +36,9 @@ public final class LinkedPlayersPlugin extends JavaPlugin {
         skins = new SkinService(this);
         if (getServer().getPluginManager().getPlugin("floodgate") != null) {
             bedrockUi = new BedrockUi(this);
-            getLogger().info("Floodgate detectado -- interface nativa do Bedrock ativa.");
+            getLogger().info("Floodgate detected -- native Bedrock UI enabled.");
         } else {
-            getLogger().info("Floodgate ausente -- vinculo so por comando de texto.");
+            getLogger().info("Floodgate not found -- linking via text commands only.");
         }
         links = new LinkService(groups, engine, getConfig().getLong("link.code-timeout-seconds", 300),
                 id -> bedrockUi != null && BedrockUi.isBedrock(id));
@@ -47,7 +47,7 @@ public final class LinkedPlayersPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new JoinPrompt(this, groups, prompts), this);
 
         LinkCommand admin = new LinkCommand(this, groups, engine);
-        var pc = getCommand("plink");
+        var pc = getCommand("crosslink");
         if (pc != null) { pc.setExecutor(admin); pc.setTabCompleter(admin); }
 
         playerCmd = new PlayerLinkCommand(this, groups, links);
@@ -77,7 +77,7 @@ public final class LinkedPlayersPlugin extends JavaPlugin {
         if (bedrockUi == null) return;
         bedrockUi.askJavaName(p,
                 name -> playerCmd.handle(p, links.request(p, name)),
-                () -> PlayerLinkCommand.msg(p, "Vinculo cancelado. Use /link quando quiser.",
+                () -> PlayerLinkCommand.msg(p, "Link cancelled. Use /link whenever you want.",
                         NamedTextColor.GRAY));
     }
 
@@ -105,8 +105,8 @@ public final class LinkedPlayersPlugin extends JavaPlugin {
 
         Player target = bedrock;
         skins.copySkin(javaId, target,
-                () -> PlayerLinkCommand.msg(target, "Skin da conta Java aplicada.", NamedTextColor.GREEN),
-                err -> PlayerLinkCommand.msg(target, "Vinculo feito, mas a skin falhou: " + err,
+                () -> PlayerLinkCommand.msg(target, "Java account skin applied.", NamedTextColor.GREEN),
+                err -> PlayerLinkCommand.msg(target, "Linked, but the skin failed: " + err,
                         NamedTextColor.YELLOW));
     }
 

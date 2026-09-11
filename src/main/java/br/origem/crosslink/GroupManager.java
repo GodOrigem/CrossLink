@@ -1,4 +1,4 @@
-package br.origem.linkedplayers;
+package br.origem.crosslink;
 
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -71,14 +71,14 @@ public final class GroupManager {
                         g.add(id, ms.getString(raw, raw));
                         byMember.put(id, g);
                     } catch (IllegalArgumentException ex) {
-                        log.warning("UUID invalida em groups.yml (grupo " + key + "): " + raw);
+                        log.warning("invalid UUID in groups.yml (group " + key + "): " + raw);
                     }
                 }
             }
             String prim = gs.getString("primary");
             if (prim != null) {
                 try { g.primary(UUID.fromString(prim)); }
-                catch (IllegalArgumentException ex) { log.warning("primary invalida no grupo " + key); }
+                catch (IllegalArgumentException ex) { log.warning("invalid primary in group " + key); }
             }
             if (g.primary() == null && !g.members().isEmpty()) {
                 g.primary(g.members().keySet().iterator().next());
@@ -86,7 +86,7 @@ public final class GroupManager {
             g.state(SharedState.load(gs.getConfigurationSection("state")));
             byName.put(key, g);
         }
-        log.info("carregados " + byName.size() + " grupo(s)");
+        log.info("loaded " + byName.size() + " group(s)");
     }
 
     public void save() {
@@ -102,7 +102,7 @@ public final class GroupManager {
         try {
             yml.save(file);
         } catch (IOException ex) {
-            log.log(Level.SEVERE, "falha ao salvar groups.yml", ex);
+            log.log(Level.SEVERE, "failed to save groups.yml", ex);
         }
     }
 }

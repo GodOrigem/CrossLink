@@ -1,4 +1,4 @@
-package br.origem.linkedplayers;
+package br.origem.crosslink;
 
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
@@ -185,7 +185,7 @@ public final class SyncEngine {
             }
         }
         if (changed > 0) {
-            plugin.getLogger().info("pets transferidos para " + to.getName() + ": " + changed);
+            plugin.getLogger().info("pets transferred to " + to.getName() + ": " + changed);
         }
     }
 
@@ -261,7 +261,7 @@ public final class SyncEngine {
                 for (int i = 0; i < all.length - backupsToKeep; i++) all[i].delete();
             }
         } catch (Exception ex) {
-            plugin.getLogger().log(Level.WARNING, "falha ao salvar backup de " + p.getName(), ex);
+            plugin.getLogger().log(Level.WARNING, "failed to back up " + p.getName(), ex);
         }
     }
 

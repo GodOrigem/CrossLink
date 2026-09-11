@@ -1,4 +1,4 @@
-package br.origem.linkedplayers;
+package br.origem.crosslink;
 
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -14,11 +14,11 @@ import org.bukkit.event.player.PlayerJoinEvent;
  */
 public final class JoinPrompt implements Listener {
 
-    private final LinkedPlayersPlugin plugin;
+    private final CrossLinkPlugin plugin;
     private final GroupManager groups;
     private final PromptTracker prompts;
 
-    public JoinPrompt(LinkedPlayersPlugin plugin, GroupManager groups, PromptTracker prompts) {
+    public JoinPrompt(CrossLinkPlugin plugin, GroupManager groups, PromptTracker prompts) {
         this.plugin = plugin;
         this.groups = groups;
         this.prompts = prompts;

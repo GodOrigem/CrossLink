@@ -1,22 +1,22 @@
-name: LinkedPlayers
-version: '1.2.1'
-main: br.origem.linkedplayers.LinkedPlayersPlugin
+name: CrossLink
+version: '1.0.0'
+main: br.origem.crosslink.CrossLinkPlugin
 api-version: '1.21'
-description: Vincula conta Bedrock e Java no mesmo personagem - inventario, ender chest, XP e skin compartilhados, inclusive com as duas online.
+description: Link a Bedrock and a Java account into one character - shared inventory, ender chest, XP, pets and skin, even with both online.
 author: Origem
 softdepend: [floodgate]
 
 commands:
   link:
-    description: Vincula sua conta a outra (self-service).
-    usage: /link [nick|codigo|status]
-  plink:
-    description: Gerencia os grupos de contas vinculadas.
-    usage: /plink
-    permission: linkedplayers.admin
-    aliases: [linkedplayers, playerlink]
+    description: Link your account to another one (self-service).
+    usage: /link [name|code|status]
+  crosslink:
+    description: Manage linked account groups.
+    usage: /crosslink
+    permission: crosslink.admin
+    aliases: [clink, plink]
 
 permissions:
-  linkedplayers.admin:
-    description: Permite gerenciar vinculos de qualquer jogador.
+  crosslink.admin:
+    description: Manage links for any player.
     default: op

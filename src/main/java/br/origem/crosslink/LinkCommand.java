@@ -1,4 +1,4 @@
-package br.origem.linkedplayers;
+package br.origem.crosslink;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -16,28 +16,28 @@ import java.util.*;
 
 public final class LinkCommand implements CommandExecutor, TabCompleter {
 
-    private final LinkedPlayersPlugin plugin;
+    private final CrossLinkPlugin plugin;
     private final GroupManager groups;
     private final SyncEngine engine;
 
-    public LinkCommand(LinkedPlayersPlugin plugin, GroupManager groups, SyncEngine engine) {
+    public LinkCommand(CrossLinkPlugin plugin, GroupManager groups, SyncEngine engine) {
         this.plugin = plugin;
         this.groups = groups;
         this.engine = engine;
     }
 
     private void ok(CommandSender s, String msg) {
-        s.sendMessage(Component.text("[LinkedPlayers] ", NamedTextColor.AQUA)
+        s.sendMessage(Component.text("[CrossLink] ", NamedTextColor.AQUA)
                 .append(Component.text(msg, NamedTextColor.GREEN)));
     }
 
     private void err(CommandSender s, String msg) {
-        s.sendMessage(Component.text("[LinkedPlayers] ", NamedTextColor.AQUA)
+        s.sendMessage(Component.text("[CrossLink] ", NamedTextColor.AQUA)
                 .append(Component.text(msg, NamedTextColor.RED)));
     }
 
     private void info(CommandSender s, String msg) {
-        s.sendMessage(Component.text("[LinkedPlayers] ", NamedTextColor.AQUA)
+        s.sendMessage(Component.text("[CrossLink] ", NamedTextColor.AQUA)
                 .append(Component.text(msg, NamedTextColor.WHITE)));
     }
 
@@ -55,9 +55,9 @@ public final class LinkCommand implements CommandExecutor, TabCompleter {
         try {
             return UUID.fromString(arg);
         } catch (IllegalArgumentException ignored) {
-            err(s, "'" + arg + "' nao esta online e nao e uma UUID.");
-            info(s, "Peca pro jogador entrar e rode de novo, ou passe a UUID direto.");
-            info(s, "Conta Bedrock nao pode ser resolvida por nome offline.");
+            err(s, "'" + arg + "' is not online and is not a UUID.");
+            info(s, "Ask them to join and run it again, or pass the UUID directly.");
+            info(s, "A Bedrock account cannot be resolved by name while offline.");
             return null;
         }
     }
@@ -69,125 +69,125 @@ public final class LinkCommand implements CommandExecutor, TabCompleter {
 
         switch (a[0].toLowerCase(Locale.ROOT)) {
             case "create" -> {
-                if (a.length < 2) { err(s, "uso: /" + label + " create <grupo>"); return true; }
-                if (groups.create(a[1]) == null) { err(s, "grupo '" + a[1] + "' ja existe."); return true; }
+                if (a.length < 2) { err(s, "usage: /" + label + " create <group>"); return true; }
+                if (groups.create(a[1]) == null) { err(s, "group '" + a[1] + "' already exists."); return true; }
                 groups.save();
-                ok(s, "grupo '" + a[1].toLowerCase(Locale.ROOT) + "' criado.");
+                ok(s, "group '" + a[1].toLowerCase(Locale.ROOT) + "' created.");
             }
             case "delete" -> {
-                if (a.length < 2) { err(s, "uso: /" + label + " delete <grupo>"); return true; }
-                if (!groups.delete(a[1])) { err(s, "grupo '" + a[1] + "' nao existe."); return true; }
+                if (a.length < 2) { err(s, "usage: /" + label + " delete <group>"); return true; }
+                if (!groups.delete(a[1])) { err(s, "group '" + a[1] + "' does not exist."); return true; }
                 groups.save();
-                ok(s, "grupo removido. Os jogadores ficam com o estado atual.");
+                ok(s, "group deleted. Players keep their current state.");
             }
             case "add" -> {
-                if (a.length < 3) { err(s, "uso: /" + label + " add <grupo> <jogador|uuid>"); return true; }
+                if (a.length < 3) { err(s, "usage: /" + label + " add <group> <player|uuid>"); return true; }
                 LinkGroup g = groups.byName(a[1]);
-                if (g == null) { err(s, "grupo '" + a[1] + "' nao existe."); return true; }
+                if (g == null) { err(s, "group '" + a[1] + "' does not exist."); return true; }
                 UUID id = resolve(s, a[2]);
                 if (id == null) return true;
                 LinkGroup atual = groups.of(id);
                 if (atual != null) {
-                    err(s, a[2] + " ja esta no grupo '" + atual.name() + "'.");
+                    err(s, a[2] + " is already in group '" + atual.name() + "'.");
                     return true;
                 }
                 Player p = Bukkit.getPlayer(id);
                 groups.addMember(g, id, p != null ? p.getName() : id.toString());
                 groups.save();
-                ok(s, a[2] + " entrou no grupo '" + g.name() + "'.");
+                ok(s, a[2] + " joined group '" + g.name() + "'.");
                 // Adota a partir da primaria: quem entra recebe, nunca sobrescreve.
                 engine.adoptFromPrimary(g);
-                if (p != null) info(s, "estado da conta primaria aplicado a " + p.getName() + ".");
+                if (p != null) info(s, "primary account state applied to " + p.getName() + ".");
             }
             case "remove" -> {
-                if (a.length < 3) { err(s, "uso: /" + label + " remove <grupo> <jogador|uuid>"); return true; }
+                if (a.length < 3) { err(s, "usage: /" + label + " remove <group> <player|uuid>"); return true; }
                 LinkGroup g = groups.byName(a[1]);
-                if (g == null) { err(s, "grupo '" + a[1] + "' nao existe."); return true; }
+                if (g == null) { err(s, "group '" + a[1] + "' does not exist."); return true; }
                 UUID id = resolve(s, a[2]);
                 if (id == null) return true;
-                if (!g.has(id)) { err(s, "esse jogador nao esta no grupo."); return true; }
+                if (!g.has(id)) { err(s, "that player is not in the group."); return true; }
                 groups.removeMember(g, id);
                 groups.save();
-                ok(s, "removido do grupo '" + g.name() + "'. Fica com o inventario atual.");
+                ok(s, "removed from group '" + g.name() + "'. Keeps the current inventory.");
             }
             case "sync" -> {
-                if (a.length < 2) { err(s, "uso: /" + label + " sync <jogador>"); return true; }
+                if (a.length < 2) { err(s, "usage: /" + label + " sync <jogador>"); return true; }
                 Player src = Bukkit.getPlayerExact(a[1]);
-                if (src == null) { err(s, a[1] + " nao esta online."); return true; }
-                if (groups.of(src.getUniqueId()) == null) { err(s, a[1] + " nao esta em grupo nenhum."); return true; }
+                if (src == null) { err(s, a[1] + " is not online."); return true; }
+                if (groups.of(src.getUniqueId()) == null) { err(s, a[1] + " is not in any group."); return true; }
                 engine.syncFrom(src);
                 groups.save();
-                ok(s, "estado de " + src.getName() + " virou a verdade do grupo.");
+                ok(s, "" + src.getName() + " is now the group source of truth.");
             }
             case "list" -> {
-                if (groups.all().isEmpty()) { info(s, "nenhum grupo definido."); return true; }
+                if (groups.all().isEmpty()) { info(s, "no groups defined."); return true; }
                 for (LinkGroup g : groups.all()) {
-                    info(s, "grupo '" + g.name() + "' (" + g.members().size() + "):");
+                    info(s, "group '" + g.name() + "' (" + g.members().size() + "):");
                     for (Map.Entry<UUID, String> e : g.members().entrySet()) {
                         Player p = Bukkit.getPlayer(e.getKey());
                         String status = (p != null && p.isOnline()) ? " [online]" : "";
-                        String prim = g.isPrimary(e.getKey()) ? " [PRIMARIA]" : "";
+                        String prim = g.isPrimary(e.getKey()) ? " [PRIMARY]" : "";
                         info(s, "   - " + e.getValue() + prim + status + "  " + e.getKey());
                     }
                 }
             }
             case "primary" -> {
-                if (a.length < 3) { err(s, "uso: /" + label + " primary <grupo> <jogador|uuid>"); return true; }
+                if (a.length < 3) { err(s, "usage: /" + label + " primary <group> <player|uuid>"); return true; }
                 LinkGroup g = groups.byName(a[1]);
-                if (g == null) { err(s, "grupo '" + a[1] + "' nao existe."); return true; }
+                if (g == null) { err(s, "group '" + a[1] + "' does not exist."); return true; }
                 UUID id = resolve(s, a[2]);
                 if (id == null) return true;
-                if (!g.has(id)) { err(s, "esse jogador nao esta no grupo."); return true; }
+                if (!g.has(id)) { err(s, "that player is not in the group."); return true; }
                 g.primary(id);
                 groups.save();
-                ok(s, "conta primaria do grupo '" + g.name() + "' agora e " + a[2] + ".");
-                info(s, "a playerdata de verdade fica nessa conta; as outras espelham.");
+                ok(s, "primary account of group '" + g.name() + "' is now " + a[2] + ".");
+                info(s, "the real playerdata lives on that account; the others mirror it.");
             }
             case "backups" -> {
-                if (a.length < 2) { err(s, "uso: /" + label + " backups <jogador|uuid>"); return true; }
+                if (a.length < 2) { err(s, "usage: /" + label + " backups <player|uuid>"); return true; }
                 UUID id = resolve(s, a[1]);
                 if (id == null) return true;
                 File[] list = backupFiles(id);
-                if (list.length == 0) { info(s, "nenhum backup para esse jogador."); return true; }
-                info(s, list.length + " backup(s), do mais novo pro mais antigo:");
+                if (list.length == 0) { info(s, "no backups for that player."); return true; }
+                info(s, list.length + " backup(s), newest first:");
                 for (int i = list.length - 1; i >= 0; i--) {
                     YamlConfiguration y = YamlConfiguration.loadConfiguration(list[i]);
                     info(s, "   " + list[i].getName() + "  (" + y.getString("when", "?") + ")");
                 }
-                info(s, "restaure com: /" + label + " restore <jogador> [arquivo]");
+                info(s, "restore with: /" + label + " restore <player> [file]");
             }
             case "restore" -> {
-                if (a.length < 2) { err(s, "uso: /" + label + " restore <jogador> [arquivo]"); return true; }
+                if (a.length < 2) { err(s, "usage: /" + label + " restore <player> [file]"); return true; }
                 Player target = Bukkit.getPlayerExact(a[1]);
-                if (target == null) { err(s, a[1] + " precisa estar online para restaurar."); return true; }
+                if (target == null) { err(s, a[1] + " must be online to restore."); return true; }
                 File[] list = backupFiles(target.getUniqueId());
-                if (list.length == 0) { err(s, "nenhum backup para " + a[1] + "."); return true; }
+                if (list.length == 0) { err(s, "no backups for " + a[1] + "."); return true; }
                 File pick = list[list.length - 1];
                 if (a.length >= 3) {
                     pick = null;
                     for (File f : list) if (f.getName().equals(a[2])) pick = f;
-                    if (pick == null) { err(s, "backup '" + a[2] + "' nao encontrado."); return true; }
+                    if (pick == null) { err(s, "backup '" + a[2] + "' not found."); return true; }
                 }
                 YamlConfiguration y = YamlConfiguration.loadConfiguration(pick);
                 SharedState st = SharedState.load(y.getConfigurationSection("state"));
                 engine.apply(target, st);
-                ok(s, "restaurado " + pick.getName() + " em " + target.getName() + ".");
-                info(s, "o estado anterior virou um backup novo, entao da pra desfazer.");
+                ok(s, "restored " + pick.getName() + " onto " + target.getName() + ".");
+                info(s, "the previous state became a new backup, so this is undoable.");
             }
             case "resetprompt" -> {
-                if (a.length < 2) { err(s, "uso: /" + label + " resetprompt <jogador|uuid>"); return true; }
+                if (a.length < 2) { err(s, "usage: /" + label + " resetprompt <player|uuid>"); return true; }
                 UUID id = resolve(s, a[1]);
                 if (id == null) return true;
                 if (plugin.prompts().reset(id)) {
                     plugin.prompts().save();
-                    ok(s, "convite liberado. Reconecte a conta para o formulario aparecer.");
+                    ok(s, "prompt reset. Reconnect the account for the form to show up.");
                 } else {
-                    info(s, "essa conta ainda nao tinha sido convidada -- o formulario ja apareceria.");
+                    info(s, "that account had not been prompted yet -- the form would already show.");
                 }
             }
             case "reload" -> {
                 plugin.reloadAll();
-                ok(s, "config e grupos recarregados.");
+                ok(s, "config and groups reloaded.");
             }
             default -> usage(s, label);
         }
@@ -203,16 +203,16 @@ public final class LinkCommand implements CommandExecutor, TabCompleter {
     }
 
     private void usage(CommandSender s, String label) {
-        info(s, "/" + label + " create <grupo>");
-        info(s, "/" + label + " add <grupo> <jogador|uuid>");
-        info(s, "/" + label + " remove <grupo> <jogador|uuid>");
-        info(s, "/" + label + " sync <jogador>   - forca este como fonte da verdade");
-        info(s, "/" + label + " primary <grupo> <jogador> - define a conta dona dos dados");
-        info(s, "/" + label + " resetprompt <jogador> - faz o convite do Bedrock reaparecer");
-        info(s, "/" + label + " backups <jogador>");
-        info(s, "/" + label + " restore <jogador> [arquivo]");
+        info(s, "/" + label + " create <group>");
+        info(s, "/" + label + " add <group> <player|uuid>");
+        info(s, "/" + label + " remove <group> <player|uuid>");
+        info(s, "/" + label + " sync <player>   - force this one as source of truth");
+        info(s, "/" + label + " primary <group> <player> - set the account that owns the data");
+        info(s, "/" + label + " resetprompt <player> - make the Bedrock prompt show again");
+        info(s, "/" + label + " backups <player>");
+        info(s, "/" + label + " restore <player> [file]");
         info(s, "/" + label + " list");
-        info(s, "/" + label + " delete <grupo>");
+        info(s, "/" + label + " delete <group>");
         info(s, "/" + label + " reload");
     }
 
