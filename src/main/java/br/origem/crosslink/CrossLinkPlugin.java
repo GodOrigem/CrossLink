@@ -27,6 +27,7 @@ public final class CrossLinkPlugin extends JavaPlugin {
     @Override
     public void onEnable() {
         saveDefaultConfig();
+        mergeNewConfigKeys();
         groups = new GroupManager(new File(getDataFolder(), "groups.yml"), getLogger());
         groups.load();
         prompts = new PromptTracker(new File(getDataFolder(), "prompted.yml"), getLogger());
@@ -169,8 +170,38 @@ public final class CrossLinkPlugin extends JavaPlugin {
         }, delay);
     }
 
+    /**
+     * Acrescenta ao config.yml existente as chaves que sao novas nesta versao.
+     *
+     * saveDefaultConfig() so escreve quando o arquivo nao existe, entao quem
+     * atualiza o plugin nunca via as opcoes novas -- elas funcionavam pelo
+     * valor padrao, mas ficavam invisiveis. Aqui os comentarios das chaves ja
+     * existentes sao preservados; so o que falta e acrescentado.
+     */
+    private void mergeNewConfigKeys() {
+        try {
+            var defaults = getConfig().getDefaults();
+            if (defaults == null) return;
+            boolean added = false;
+            for (String key : defaults.getKeys(true)) {
+                if (defaults.isConfigurationSection(key)) continue;
+                if (!getConfig().contains(key, true)) {
+                    getConfig().set(key, defaults.get(key));
+                    getLogger().info("new config option added: " + key
+                            + " = " + defaults.get(key));
+                    added = true;
+                }
+            }
+            if (added) saveConfig();
+        } catch (Exception ex) {
+            getLogger().warning("could not merge new config options: " + ex);
+        }
+    }
+
     private void applyConfig() {
         engine.syncInventory = getConfig().getBoolean("sync.inventory", true);
+        engine.syncArmor = getConfig().getBoolean("sync.armor", true);
+        engine.syncOffhand = getConfig().getBoolean("sync.offhand", true);
         engine.syncEnderChest = getConfig().getBoolean("sync.ender-chest", true);
         engine.syncXp = getConfig().getBoolean("sync.xp", true);
         engine.syncHealth = getConfig().getBoolean("sync.health", false);

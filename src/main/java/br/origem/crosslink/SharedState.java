@@ -27,11 +27,20 @@ public final class SharedState {
 
     /** Identidade barata pra detectar "quem mexeu" sem comparar tudo slot a slot. */
     public int fingerprint() {
-        return Objects.hash(
-                Arrays.deepHashCode(inventory),
-                Arrays.deepHashCode(enderChest),
-                level, exp, totalExperience,
-                health, foodLevel, saturation);
+        return mix(Arrays.deepHashCode(inventory), Arrays.deepHashCode(enderChest),
+                level, exp, totalExperience, health, foodLevel, saturation);
+    }
+
+    /**
+     * A mesma conta, usada tambem direto sobre o jogador vivo.
+     *
+     * A varredura precisa so do hash, nao de uma copia -- e montar um
+     * SharedState para descartar em seguida custava 68 ItemStack.clone() por
+     * jogador por segundo, cada um copiando o meta do item inteiro.
+     */
+    public static int mix(int invHash, int enderHash, int level, float exp,
+                          int totalExp, double health, int food, float saturation) {
+        return Objects.hash(invHash, enderHash, level, exp, totalExp, health, food, saturation);
     }
 
     public void save(ConfigurationSection s) {

@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.1.0-beta.6
+
+- **The periodic sweep no longer allocates.** It used to build a full state
+  snapshot just to hash it and throw it away — 68 `ItemStack.clone()` calls per
+  linked player per second, each deep copying item metadata. The hash is now
+  computed directly over the live inventory. Players outside a linked group
+  cost nothing either way.
+- **`sync.armor` and `sync.offhand`** are now separate from `sync.inventory`,
+  so you can share the backpack while keeping armour per account.
+- **New config options are merged into an existing `config.yml` on startup.**
+  `saveDefaultConfig()` only writes when the file is absent, so anyone updating
+  the plugin never saw new options — they worked at their default value but
+  stayed invisible. Existing comments and values are preserved.
+- README gained badges, a Performance section explaining what the sweep
+  actually costs, and the pet commands in the admin table.
+
 ## 1.1.0-beta.5
 
 - `pets`, `claimpets` and the new `retargetpets` accept a player name, so they

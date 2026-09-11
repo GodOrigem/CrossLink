@@ -34,8 +34,11 @@ public final class SyncEngine {
     private final Map<UUID, Integer> lastSeen = new HashMap<>();
     /** Grupo -> conta que deu sinal de vida por ultimo; dona dos pets. */
     private final Map<String, UUID> active = new HashMap<>();
+    private static final ItemStack[] EMPTY = new ItemStack[0];
 
     public boolean syncInventory = true;
+    public boolean syncArmor = true;
+    public boolean syncOffhand = true;
     public boolean syncEnderChest = true;
     public boolean syncXp = true;
     public boolean syncHealth = false;
@@ -114,7 +117,7 @@ public final class SyncEngine {
             apply(p, st);
         } else {
             // Grupo sem estado e quem entrou nao e a primaria: nao toca em nada.
-            lastSeen.put(p.getUniqueId(), capture(p).fingerprint());
+            lastSeen.put(p.getUniqueId(), fingerprintOf(p));
         }
         if (syncPets) {
             // Marca ja, para o ChunkLoadEvent saber de quem sao os pets; a
@@ -141,7 +144,7 @@ public final class SyncEngine {
 
             Player actor = null;
             for (Player p : online) {
-                int fp = capture(p).fingerprint();
+                int fp = fingerprintOf(p);
                 Integer last = lastSeen.get(p.getUniqueId());
                 if (last == null) { lastSeen.put(p.getUniqueId(), fp); continue; }
                 if (fp != last) { actor = p; break; }
@@ -165,7 +168,13 @@ public final class SyncEngine {
         if (clearSecondaryOnQuit && !g.isPrimary(p.getUniqueId())) {
             applying.add(p.getUniqueId());
             try {
-                if (syncInventory) p.getInventory().clear();
+                if (anyInventorySync()) {
+                    ItemStack[] cur = p.getInventory().getContents();
+                    for (int i = 0; i < cur.length; i++) {
+                        if (slotSynced(i, cur.length)) cur[i] = null;
+                    }
+                    p.getInventory().setContents(cur);
+                }
                 if (syncEnderChest) p.getEnderChest().clear();
                 if (syncXp) { p.setLevel(0); p.setExp(0f); p.setTotalExperience(0); }
             } finally {
@@ -287,9 +296,57 @@ public final class SyncEngine {
         return n;
     }
 
+    /**
+     * O inventario do jogador vem num array unico de 41 posicoes:
+     * 0-35 mochila, 36-39 armadura, 40 offhand. Separar as tres faixas e o que
+     * permite, por exemplo, compartilhar a mochila mas manter a armadura de
+     * cada conta.
+     */
+    private boolean slotSynced(int i, int size) {
+        if (size < 41) return syncInventory;      // inventario nao-jogador
+        if (i <= 35) return syncInventory;
+        if (i <= 39) return syncArmor;
+        return syncOffhand;
+    }
+
+    private boolean anyInventorySync() {
+        return syncInventory || syncArmor || syncOffhand;
+    }
+
+    /** Conteudo com as faixas desligadas zeradas, para captura e para hash. */
+    private ItemStack[] masked(Player p) {
+        ItemStack[] src = p.getInventory().getContents();
+        ItemStack[] out = new ItemStack[src.length];
+        for (int i = 0; i < src.length; i++) {
+            if (slotSynced(i, src.length)) out[i] = src[i];
+        }
+        return out;
+    }
+
+    /**
+     * Hash do estado atual do jogador, sem alocar copia nenhuma.
+     * E o que a varredura usa; capture() so entra quando algo de fato mudou.
+     */
+    public int fingerprintOf(Player p) {
+        // Desligado precisa dar o MESMO hash que capture() produziria, e la o
+        // campo fica como array vazio -- cujo deepHashCode e 1, nao 0. Divergir
+        // aqui faria a varredura ver mudanca a cada passada e ressincronizar
+        // para sempre.
+        int inv = java.util.Arrays.deepHashCode(anyInventorySync() ? masked(p) : EMPTY);
+        int ec = java.util.Arrays.deepHashCode(
+                syncEnderChest ? p.getEnderChest().getContents() : EMPTY);
+        int level = syncXp ? p.getLevel() : 0;
+        float exp = syncXp ? p.getExp() : 0f;
+        int total = syncXp ? p.getTotalExperience() : 0;
+        double hp = syncHealth ? p.getHealth() : -1;
+        int food = syncFood ? p.getFoodLevel() : -1;
+        float sat = syncFood ? p.getSaturation() : 0f;
+        return SharedState.mix(inv, ec, level, exp, total, hp, food, sat);
+    }
+
     public SharedState capture(Player p) {
         SharedState st = new SharedState();
-        if (syncInventory) st.inventory = cloneAll(p.getInventory().getContents());
+        if (anyInventorySync()) st.inventory = cloneAll(masked(p));
         if (syncEnderChest) st.enderChest = cloneAll(p.getEnderChest().getContents());
         if (syncXp) {
             st.level = p.getLevel();
@@ -308,8 +365,18 @@ public final class SyncEngine {
         backup(p);
         applying.add(p.getUniqueId());
         try {
-            if (syncInventory && st.inventory.length > 0) {
-                p.getInventory().setContents(fit(st.inventory, p.getInventory().getSize()));
+            if (anyInventorySync() && st.inventory.length > 0) {
+                // Escreve so as faixas ligadas; o resto do inventario de quem
+                // recebe fica intacto.
+                ItemStack[] cur = p.getInventory().getContents();
+                ItemStack[] out = java.util.Arrays.copyOf(cur, cur.length);
+                int n = Math.min(out.length, st.inventory.length);
+                for (int i = 0; i < n; i++) {
+                    if (slotSynced(i, out.length)) {
+                        out[i] = st.inventory[i] == null ? null : st.inventory[i].clone();
+                    }
+                }
+                p.getInventory().setContents(out);
             }
             if (syncEnderChest && st.enderChest.length > 0) {
                 p.getEnderChest().setContents(fit(st.enderChest, p.getEnderChest().getSize()));

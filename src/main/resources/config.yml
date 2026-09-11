@@ -1,6 +1,10 @@
 # O que os membros de um grupo compartilham.
+# O que passa de uma conta para a outra. Cada linha e independente:
+# desligar uma faixa deixa aquela parte separada em cada conta.
 sync:
-  inventory: true      # mochila + armadura + offhand
+  inventory: true      # as 36 posicoes da mochila
+  armor: true          # os 4 slots de armadura
+  offhand: true        # a mao secundaria
   ender-chest: true
   xp: true             # nivel, progresso e total
 

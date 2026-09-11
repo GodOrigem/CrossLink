@@ -1,5 +1,12 @@
 # CrossLink
 
+[![Minecraft](https://img.shields.io/badge/Minecraft-1.18%20%E2%86%92%2026.2-brightgreen?style=flat-square)](#requirements)
+[![Platform](https://img.shields.io/badge/platform-Paper%20%7C%20Spigot%20%7C%20Folia-blue?style=flat-square)](#platform-notes)
+[![Java](https://img.shields.io/badge/Java-17%2B-orange?style=flat-square)](#building)
+[![Release](https://img.shields.io/github/v/release/GodOrigem/CrossLink?include_prereleases&style=flat-square)](../../releases)
+[![License](https://img.shields.io/github/license/GodOrigem/CrossLink?style=flat-square)](LICENSE)
+[![Maintenance](https://img.shields.io/badge/maintenance-not%20actively%20maintained-red?style=flat-square)](#-status-not-actively-maintained)
+
 Link a **Bedrock** and a **Java** account into one character: shared inventory,
 ender chest, XP, pets and skin — **even with both accounts online at the same
 time**.
@@ -126,6 +133,9 @@ Require the `crosslink.admin` permission (default: op). Aliases: `/clink`,
 | `/crosslink backups <player>` | list available backups |
 | `/crosslink restore <player> [file]` | restore a backup |
 | `/crosslink resetprompt <player>` | make the Bedrock prompt show again |
+| `/crosslink pets [player] [radius]` | who owns the animals around them |
+| `/crosslink claimpets [player] [radius]` | adopt nearby tamed animals into the group |
+| `/crosslink retargetpets [player]` | reassign this group's pets world-wide |
 | `/crosslink list` | list groups and members |
 | `/crosslink delete <group>` | delete a group (nobody loses items) |
 | `/crosslink reload` | reload config and groups |
@@ -177,9 +187,15 @@ Restoring also creates a backup, so a restore can itself be undone.
 
 ## Configuration
 
+Every line below is independent. Turning one off leaves that part separate on
+each account — you can share the backpack but keep armour per account, or share
+everything except the ender chest.
+
 ```yaml
 sync:
-  inventory: true      # main inventory + armor + offhand
+  inventory: true      # the 36 backpack slots
+  armor: true          # the 4 armour slots
+  offhand: true        # the off-hand slot
   ender-chest: true
   xp: true             # level, progress and total
   pets: true           # wolf, cat, horse, parrot
@@ -191,10 +207,13 @@ safety:
   backups-to-keep: 10
 
 link:
-  prompt-on-first-join: true      # automatic Bedrock form
-  prompt-delay-ticks: 60
-  code-timeout-seconds: 300
+  prompt-on-first-join: true      # automatic Bedrock form, once per account
+  prompt-delay-ticks: 60          # wait before opening it, so the world loads
+  code-timeout-seconds: 300       # how long a link code stays valid
   copy-java-skin: true
+  reapply-skin-on-join: true      # without this the skin is lost on first relog
+  skin-apply-delay-ticks: 40      # wait so it lands after Geyser's own skin
+  skin-provider: auto             # 'native' applies even with SkinsRestorer
 
 sweep-interval-ticks: 20          # safety sweep (20 = 1 second)
 save-interval-ticks: 6000
@@ -284,9 +303,10 @@ Two paths feed the mirroring:
 1. **Events** — inventory clicks, drops, pickups, item breaks, block placement,
    eating, XP, damage. These mark who acted, and the change propagates on the
    next tick, once the effect has landed.
-2. **Periodic sweep** (1s by default) — compares each online member's snapshot
-   against **its own previous snapshot** and propagates whoever changed. A
-   safety net for anything no event covered.
+2. **Periodic sweep** (1s by default) — compares each online member's hash
+   against **its own previous hash** and propagates whoever changed. A safety
+   net for anything no event covered. See [Performance](#performance) for what
+   this costs.
 
 An `applying` set prevents infinite loops: while the plugin writes to someone's
 inventory, the events that triggers are ignored.
@@ -294,6 +314,38 @@ inventory, the events that triggers are ignored.
 Death gets its own handling. The dead player's inventory is cleared *after* the
 event, so the sync is delayed by one tick — without that the items would drop
 on the ground **and** stay in the mirrored inventory, duplicating.
+
+## Performance
+
+Two paths keep accounts in sync, and only one of them runs continuously.
+
+The **event path** costs nothing when nobody is doing anything — it reacts to
+inventory clicks, drops, pickups and so on, and coalesces everything a single
+action triggers into one sync on the next tick.
+
+The **sweep** is the periodic safety net, and it is the only recurring cost. It
+runs once per `sweep-interval-ticks` (1 second by default) and, for each online
+member of a linked group, computes a hash of their state.
+
+The hash is computed **directly over the live inventory, with no copying**. An
+earlier version built a full snapshot just to hash it and throw it away, which
+meant 68 `ItemStack.clone()` calls per linked player per second, each deep
+copying item metadata. On a busy server that is the difference between
+negligible and noticeable.
+
+What remains per linked online player per second is two `getContents()` calls
+and a hash over 68 slots. Players who are **not** in a linked group cost
+nothing at all — the sweep only walks groups.
+
+If you run a large server and want to trim it further, raise the interval:
+
+```yaml
+sweep-interval-ticks: 100   # every 5 seconds instead of every second
+```
+
+The event path is what catches changes in practice; the sweep exists for what
+no event covers. Raising the interval delays that fallback, it does not disable
+syncing.
 
 ## Known limits
 
