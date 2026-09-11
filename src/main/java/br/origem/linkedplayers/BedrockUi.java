@@ -8,6 +8,7 @@ import org.geysermc.floodgate.api.FloodgateApi;
 
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.logging.Level;
 
 /**
  * Formularios nativos do Bedrock, via Floodgate/Cumulus.
@@ -17,6 +18,13 @@ import java.util.function.Consumer;
  * sem NoClassDefFoundError.
  */
 public final class BedrockUi {
+
+    /**
+     * O cliente Bedrock so mostra um formulario por vez. Mandar o proximo no
+     * mesmo instante em que o anterior esta fechando faz o novo ser descartado,
+     * entao os encadeados esperam alguns ticks.
+     */
+    private static final long CHAIN_DELAY_TICKS = 10;
 
     private final Plugin plugin;
 
@@ -40,29 +48,33 @@ public final class BedrockUi {
                         + "Quer vincular agora?")
                 .button1("Vincular")
                 .button2("Agora nao")
-                .validResultHandler(res -> main(() -> {
-                    if (res.clickedFirst()) onAccept.run(); else onDecline.run();
+                .validResultHandler(res -> guarded(p, () -> {
+                    if (res.clickedFirst()) chain(p, onAccept); else onDecline.run();
                 }))
-                .closedOrInvalidResultHandler(() -> main(onDecline))
+                .closedOrInvalidResultHandler(() -> guarded(p, onDecline))
                 .build();
         send(p, form);
     }
 
-    /** Pede o nick da conta Java. */
+    /**
+     * Pede o nick da conta Java.
+     *
+     * O formulario tem UM unico componente de proposito. Labels tambem ocupam
+     * indice na resposta do Cumulus, entao misturar label e input faz
+     * asInput(0) estourar "Expected input on 0, got label" -- a excecao morre
+     * dentro do handler e o jogador fica olhando pra um formulario que nao
+     * responde. A instrucao vai no content, que nao vira componente.
+     */
     public void askJavaName(Player p, Consumer<String> onSubmit, Runnable onCancel) {
         CustomForm form = CustomForm.builder()
                 .title("Vincular conta Java")
-                .label("Digite o nick EXATO da sua conta Java.\n"
-                        + "Depois entre nela e use o codigo que vou te dar.")
-                .input("Nick Java", "Origem_")
-                .validResultHandler(res -> {
+                .input("Digite o nick EXATO da sua conta Java", "Steve")
+                .validResultHandler(res -> guarded(p, () -> {
                     String name = res.asInput(0);
-                    main(() -> {
-                        if (name == null || name.isBlank()) onCancel.run();
-                        else onSubmit.accept(name.trim());
-                    });
-                })
-                .closedOrInvalidResultHandler(() -> main(onCancel))
+                    if (name == null || name.isBlank()) onCancel.run();
+                    else onSubmit.accept(name.trim());
+                }))
+                .closedOrInvalidResultHandler(() -> guarded(p, onCancel))
                 .build();
         send(p, form);
     }
@@ -74,9 +86,12 @@ public final class BedrockUi {
                 .content("Seu codigo:\n\n§l" + code + "§r\n\n"
                         + "Entre na conta Java §l" + javaName + "§r e rode:\n"
                         + "§l/link " + code + "§r\n\n"
-                        + "Expira em " + (seconds / 60) + " minuto(s).")
+                        + "Expira em " + (seconds / 60) + " minuto(s).\n"
+                        + "O codigo tambem esta no seu chat.")
                 .button1("Entendi")
                 .button2("Fechar")
+                .validResultHandler(res -> { })
+                .closedOrInvalidResultHandler(() -> { })
                 .build();
         send(p, form);
     }
@@ -87,8 +102,17 @@ public final class BedrockUi {
                 .content(message)
                 .button1("Ok")
                 .button2("Fechar")
+                .validResultHandler(res -> { })
+                .closedOrInvalidResultHandler(() -> { })
                 .build();
         send(p, form);
+    }
+
+    /** Agenda algo que vai abrir outro formulario, dando tempo do atual fechar. */
+    public void chain(Player p, Runnable r) {
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (p.isOnline()) r.run();
+        }, CHAIN_DELAY_TICKS);
     }
 
     private void send(Player p, org.geysermc.cumulus.form.Form form) {
@@ -99,8 +123,22 @@ public final class BedrockUi {
         }
     }
 
-    /** Handlers do Cumulus podem vir de outra thread; Bukkit exige a principal. */
-    private void main(Runnable r) {
-        plugin.getServer().getScheduler().runTask(plugin, r);
+    /**
+     * Handlers do Cumulus rodam fora da thread principal e engolem excecao:
+     * se algo estourar la dentro, o jogador so ve o formulario parar de
+     * responder. Aqui a gente volta pra thread principal e, se der errado,
+     * pelo menos avisa em vez de deixar o jogador no escuro.
+     */
+    private void guarded(Player p, Runnable r) {
+        plugin.getServer().getScheduler().runTask(plugin, () -> {
+            try {
+                r.run();
+            } catch (Throwable t) {
+                plugin.getLogger().log(Level.SEVERE, "erro tratando formulario de " + p.getName(), t);
+                if (p.isOnline()) {
+                    p.sendMessage("§c[Vinculo] Algo deu errado. Tente /link novamente.");
+                }
+            }
+        });
     }
 }

@@ -88,7 +88,9 @@ public final class PlayerLinkCommand implements CommandExecutor {
                         NamedTextColor.WHITE);
                 msg(p, "Expira em " + (ci.seconds() / 60) + " minuto(s).", NamedTextColor.GRAY);
                 if (plugin.bedrockUi() != null && BedrockUi.isBedrock(p.getUniqueId())) {
-                    plugin.bedrockUi().showCode(p, ci.code(), ci.targetName(), ci.seconds());
+                    // Encadeado: o formulario do nick acabou de fechar agora.
+                    plugin.bedrockUi().chain(p,
+                            () -> plugin.bedrockUi().showCode(p, ci.code(), ci.targetName(), ci.seconds()));
                 }
             }
             case LinkService.Result.Linked ln -> {
