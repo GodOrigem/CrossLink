@@ -1,0 +1,31 @@
+# O que os membros de um grupo compartilham.
+sync:
+  inventory: true      # mochila + armadura + offhand
+  ender-chest: true
+  xp: true             # nivel, progresso e total
+
+  # Vida e fome vem DESLIGADOS de proposito.
+  # Com health: true, dano em um aparece no outro na hora -- e morte mata os dois.
+  health: false
+  food: false
+
+link:
+  # Mostra o formulario nativo do Bedrock no primeiro login de cada conta.
+  # Aparece UMA VEZ por conta: quem recusar so consegue de novo via /link.
+  prompt-on-first-join: true
+
+  # Espera antes de abrir o formulario, pro jogador terminar de carregar o mundo.
+  prompt-delay-ticks: 60
+
+  # Validade do codigo de confirmacao.
+  code-timeout-seconds: 300
+
+  # Copia a skin da conta Java pra conta Bedrock ao vincular.
+  copy-java-skin: true
+
+# Varredura de seguranca: pega mudanca que nenhum evento viu.
+# 20 ticks = 1 segundo.
+sweep-interval-ticks: 20
+
+# De quanto em quanto tempo grava no disco (6000 ticks = 5 min).
+save-interval-ticks: 6000

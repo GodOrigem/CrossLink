@@ -1,0 +1,35 @@
+plugins {
+    id 'java'
+}
+
+group = 'br.origem'
+version = '1.1.0'
+
+repositories {
+    mavenCentral()
+    maven { url = 'https://repo.papermc.io/repository/maven-public/' }
+    maven { url = 'https://repo.opencollab.dev/maven-snapshots/' }
+    maven { url = 'https://repo.opencollab.dev/maven-releases/' }
+}
+
+dependencies {
+    // Casa com o build exato do servidor (Paper 26.2 build 123)
+    compileOnly 'io.papermc.paper:paper-api:26.2.build.123-stable'
+
+    // Floodgate: detecta jogador Bedrock e envia formulario nativo.
+    // compileOnly -- nao vai no jar, o servidor ja tem.
+    compileOnly 'org.geysermc.floodgate:api:2.2.5-SNAPSHOT'
+    compileOnly 'org.geysermc.cumulus:cumulus:1.1.2-SNAPSHOT'
+}
+
+java {
+    toolchain { languageVersion = JavaLanguageVersion.of(25) }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+jar {
+    archiveFileName = "LinkedPlayers-${version}.jar"
+}

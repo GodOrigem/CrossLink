@@ -1,0 +1,22 @@
+name: LinkedPlayers
+version: '1.1.0'
+main: br.origem.linkedplayers.LinkedPlayersPlugin
+api-version: '1.21'
+description: Vincula conta Bedrock e Java no mesmo personagem - inventario, ender chest, XP e skin compartilhados, inclusive com as duas online.
+author: Origem
+softdepend: [floodgate]
+
+commands:
+  link:
+    description: Vincula sua conta a outra (self-service).
+    usage: /link [nick|codigo|status]
+  plink:
+    description: Gerencia os grupos de contas vinculadas.
+    usage: /plink
+    permission: linkedplayers.admin
+    aliases: [linkedplayers, playerlink]
+
+permissions:
+  linkedplayers.admin:
+    description: Permite gerenciar vinculos de qualquer jogador.
+    default: op
