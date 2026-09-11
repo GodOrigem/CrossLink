@@ -1,12 +1,13 @@
 package br.origem.crosslink;
 
 import org.bukkit.World;
-import org.bukkit.attribute.Attribute;
+import br.origem.crosslink.compat.Compat;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.AnimalTamer;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Tameable;
 import org.bukkit.inventory.ItemStack;
+import br.origem.crosslink.compat.Schedulers;
 import org.bukkit.plugin.Plugin;
 
 import java.io.File;
@@ -54,7 +55,7 @@ public final class SyncEngine {
         LinkGroup g = groups.of(p.getUniqueId());
         if (g == null) return;
         if (!scheduled.add(g.name())) return;
-        plugin.getServer().getScheduler().runTask(plugin, () -> {
+        Schedulers.run(plugin, p, () -> {
             scheduled.remove(g.name());
             if (p.isOnline()) syncFrom(p);
         });
@@ -222,9 +223,7 @@ public final class SyncEngine {
                 p.setTotalExperience(st.totalExperience);
             }
             if (syncHealth && st.health >= 0) {
-                double max = 20.0;
-                var attr = p.getAttribute(Attribute.MAX_HEALTH);
-                if (attr != null) max = attr.getValue();
+                double max = Compat.maxHealth(p);
                 p.setHealth(Math.max(0.5, Math.min(st.health, max)));
             }
             if (syncFood && st.foodLevel >= 0) {

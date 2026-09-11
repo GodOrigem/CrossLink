@@ -1,5 +1,6 @@
 package br.origem.crosslink;
 
+import br.origem.crosslink.compat.Schedulers;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -34,7 +35,7 @@ public final class JoinPrompt implements Listener {
         if (!BedrockUi.isBedrock(p.getUniqueId())) return;
 
         long delay = Math.max(20, plugin.getConfig().getLong("link.prompt-delay-ticks", 60));
-        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+        Schedulers.globalLater(plugin, () -> {
             if (!p.isOnline()) return;
             prompts.markPrompted(p.getUniqueId());
             prompts.save();

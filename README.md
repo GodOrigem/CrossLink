@@ -14,8 +14,9 @@ time**.
 > The code is MIT: fork it, change it, publish your own version. If you keep an
 > active fork, open an issue and I'll point people to it from here.
 >
-> Tested on **Paper 26.2** with **Floodgate 2.2.5** and **Geyser 2.11.2**.
-> Other versions may need adjustments.
+> **1.1.0-beta.1** widens support to Minecraft **1.18 → 26.2** and adds Spigot
+> and Folia compatibility. Verified to load on Paper 1.18.2 and 26.2; the full
+> feature set was only exercised on Paper 26.2.
 
 ---
 
@@ -37,9 +38,35 @@ character on PC.
 
 | | |
 |---|---|
-| Server | Paper 26.2 (or compatible) |
-| Java | 25 |
+| Minecraft | 1.18 → 26.2 |
+| Java | 17+ (whatever your server version requires) |
+| Platform | Paper, Spigot or Folia |
 | Floodgate | optional — without it, linking works through text commands only |
+
+The jar is Java 17 bytecode, so it loads on every server from 1.18 (Java 17)
+through 26.2 (Java 25). Version-specific APIs are reached by name at runtime,
+not linked at compile time — that is what lets a single jar span the range.
+
+### Platform notes
+
+| Platform | Status |
+|---|---|
+| **Paper** | primary target, everything works |
+| **Spigot** | works, **except skin copying** — the player profile API is Paper-only. Linking, inventory, XP and pets are unaffected. |
+| **Folia** | declared supported and scheduler-aware, but **untested**. Report back if you try it. |
+| **Velocity / Waterfall** | not a proxy plugin. See below. |
+
+### Proxy networks
+
+CrossLink is a backend plugin — it does not load on Velocity or Waterfall. You
+can install it on the Paper servers behind a proxy, but **state lives per
+server**: groups, shared inventory and backups are stored on each backend
+independently. Two accounts on different backends will not sync, and a link
+made on one server does not exist on another.
+
+For a single-server setup this is invisible. For a network, it is a real
+limitation — cross-server sync would need shared storage, which this plugin
+does not have.
 
 ## Installation
 
@@ -246,6 +273,14 @@ jar.
 | `LinkCommand` / `PlayerLinkCommand` | `/crosslink` and `/link` |
 
 Source comments are in Portuguese; user-facing messages are in English.
+
+The `compat/` package is what makes one jar span 1.18 → 26.2:
+
+| Class | Why it exists |
+|---|---|
+| `Msg` | Adventure is Paper-only and only since 1.16.5; legacy `§` codes work everywhere |
+| `Schedulers` | Folia removed the single main thread — `BukkitScheduler.runTask` throws there |
+| `Compat` | `GENERIC_MAX_HEALTH` was renamed to `MAX_HEALTH` in 1.21.3; the profile API is Paper-only |
 
 ## License
 

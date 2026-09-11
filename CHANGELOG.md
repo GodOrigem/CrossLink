@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.1.0-beta.1
+
+Widens the supported range and platforms. No behaviour changes for existing
+setups — the data format is unchanged, groups and backups carry over.
+
+- **Minecraft 1.18 → 26.2** in a single jar. Compiled to Java 17 bytecode and
+  against the Spigot 1.18.2 API, so nothing newer is linked at compile time.
+- **Spigot support.** Adventure components were replaced with legacy `§` codes,
+  which work on every platform and version in range. Skin copying still needs
+  Paper — the player profile API does not exist on Spigot, and the plugin says
+  so instead of failing silently.
+- **Folia support** declared and implemented via a scheduler abstraction. Folia
+  removed the single main thread, so every task now goes through the right
+  region scheduler. **Untested on an actual Folia server.**
+- `GENERIC_MAX_HEALTH` / `MAX_HEALTH` is resolved by name at runtime — the
+  constant was renamed in 1.21.3 and referencing either one directly would
+  break the other end of the range.
+
+Verified to load and enable on Paper 1.18.2 and Paper 26.2.
+
 ## 1.0.0 — first public release
 
 Published as **CrossLink**. Everything below happened during internal

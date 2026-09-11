@@ -1,10 +1,11 @@
 name: CrossLink
-version: '1.0.0'
+version: '1.1.0-beta.1'
 main: br.origem.crosslink.CrossLinkPlugin
-api-version: '1.21'
+api-version: '1.18'
 description: Link a Bedrock and a Java account into one character - shared inventory, ender chest, XP, pets and skin, even with both online.
 author: Origem
 softdepend: [floodgate]
+folia-supported: true
 
 commands:
   link:

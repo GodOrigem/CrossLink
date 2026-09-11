@@ -3,18 +3,22 @@ plugins {
 }
 
 group = 'br.origem'
-version = '1.0.0'
+version = '1.1.0-beta.1'
 
 repositories {
     mavenCentral()
     maven { url = 'https://repo.papermc.io/repository/maven-public/' }
+    maven { url = 'https://hub.spigotmc.org/nexus/content/repositories/snapshots/' }
     maven { url = 'https://repo.opencollab.dev/maven-snapshots/' }
     maven { url = 'https://repo.opencollab.dev/maven-releases/' }
 }
 
 dependencies {
     // Casa com o build exato do servidor (Paper 26.2 build 123)
-    compileOnly 'io.papermc.paper:paper-api:26.2.build.123-stable'
+    // Spigot API 1.18.2: o menor denominador comum do alcance suportado.
+    // Compilar contra ela e o que impede usar por acidente algo que so existe
+    // no Paper ou em versao mais nova.
+    compileOnly 'org.spigotmc:spigot-api:1.18.2-R0.1-SNAPSHOT'
 
     // Floodgate: detecta jogador Bedrock e envia formulario nativo.
     // compileOnly -- nao vai no jar, o servidor ja tem.
@@ -24,10 +28,14 @@ dependencies {
 
 java {
     toolchain { languageVersion = JavaLanguageVersion.of(25) }
+    // Bytecode Java 17: roda de 1.18 (Java 17) ate 26.2 (Java 25).
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
 }
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+    options.release = 17
 }
 
 jar {

@@ -1,7 +1,7 @@
 package br.origem.crosslink;
 
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
+import br.origem.crosslink.compat.Schedulers;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -18,7 +18,7 @@ public final class CrossLinkPlugin extends JavaPlugin {
     private PromptTracker prompts;
     private PlayerLinkCommand playerCmd;
     private BedrockUi bedrockUi;   // null quando o Floodgate nao esta instalado
-    private int sweepTask = -1;
+    private boolean tasksStarted;
 
     public BedrockUi bedrockUi() { return bedrockUi; }
     public PromptTracker prompts() { return prompts; }
@@ -78,7 +78,7 @@ public final class CrossLinkPlugin extends JavaPlugin {
         bedrockUi.askJavaName(p,
                 name -> playerCmd.handle(p, links.request(p, name)),
                 () -> PlayerLinkCommand.msg(p, "Link cancelled. Use /link whenever you want.",
-                        NamedTextColor.GRAY));
+                        PlayerLinkCommand.GRAY));
     }
 
     /**
@@ -105,9 +105,9 @@ public final class CrossLinkPlugin extends JavaPlugin {
 
         Player target = bedrock;
         skins.copySkin(javaId, target,
-                () -> PlayerLinkCommand.msg(target, "Java account skin applied.", NamedTextColor.GREEN),
+                () -> PlayerLinkCommand.msg(target, "Java account skin applied.", PlayerLinkCommand.GREEN),
                 err -> PlayerLinkCommand.msg(target, "Linked, but the skin failed: " + err,
-                        NamedTextColor.YELLOW));
+                        PlayerLinkCommand.YELLOW));
     }
 
     private void applyConfig() {
@@ -122,12 +122,17 @@ public final class CrossLinkPlugin extends JavaPlugin {
     }
 
     private void startTasks() {
-        if (sweepTask != -1) getServer().getScheduler().cancelTask(sweepTask);
+        // Tarefas repetidas nao sao cancelaveis por id no Folia, entao em vez
+        // de recriar no reload a gente inicia uma unica vez e le a config a
+        // cada passada.
+        if (tasksStarted) return;
+        tasksStarted = true;
+
         long ticks = Math.max(5, getConfig().getLong("sweep-interval-ticks", 20));
-        sweepTask = getServer().getScheduler().runTaskTimer(this, engine::sweep, ticks, ticks).getTaskId();
+        Schedulers.repeating(this, engine::sweep, ticks, ticks);
 
         long saveTicks = Math.max(600, getConfig().getLong("save-interval-ticks", 6000));
-        getServer().getScheduler().runTaskTimer(this, () -> {
+        Schedulers.repeating(this, () -> {
             groups.save();
             prompts.save();
             links.purge();

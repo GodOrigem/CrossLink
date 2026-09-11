@@ -1,7 +1,7 @@
 package br.origem.crosslink;
 
-import com.destroystokyo.paper.profile.PlayerProfile;
-import com.destroystokyo.paper.profile.ProfileProperty;
+import br.origem.crosslink.compat.Compat;
+import br.origem.crosslink.compat.Schedulers;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
@@ -41,22 +41,20 @@ public final class SkinService {
      * O HTTP roda fora da thread principal; so a aplicacao volta pra ela.
      */
     public void copySkin(UUID javaId, Player target, Runnable onSuccess, java.util.function.Consumer<String> onError) {
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+        Schedulers.async(plugin, () -> {
             Texture tex;
             try {
                 tex = fetch(javaId);
             } catch (Exception ex) {
                 plugin.getLogger().log(Level.WARNING, "failed to fetch skin for " + javaId, ex);
-                plugin.getServer().getScheduler().runTask(plugin,
-                        () -> onError.accept("could not reach Mojang servers"));
+                Schedulers.global(plugin, () -> onError.accept("could not reach Mojang servers"));
                 return;
             }
             if (tex == null) {
-                plugin.getServer().getScheduler().runTask(plugin,
-                        () -> onError.accept("the Java account has no public skin"));
+                Schedulers.global(plugin, () -> onError.accept("the Java account has no public skin"));
                 return;
             }
-            plugin.getServer().getScheduler().runTask(plugin, () -> {
+            Schedulers.run(plugin, target, () -> {
                 if (!target.isOnline()) return;
                 try {
                     apply(target, tex);
@@ -97,9 +95,9 @@ public final class SkinService {
     }
 
     private void apply(Player target, Texture tex) {
-        PlayerProfile profile = target.getPlayerProfile();
-        profile.removeProperty("textures");
-        profile.setProperty(new ProfileProperty("textures", tex.value(), tex.signature()));
-        target.setPlayerProfile(profile);
+        if (!Compat.applySkin(target, tex.value(), tex.signature())) {
+            throw new UnsupportedOperationException(
+                    "this platform has no player profile API (Paper required)");
+        }
     }
 }

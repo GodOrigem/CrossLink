@@ -1,7 +1,6 @@
 package br.origem.crosslink;
 
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
+import br.origem.crosslink.compat.Msg;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.command.Command;
@@ -9,7 +8,6 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.util.*;
@@ -26,20 +24,9 @@ public final class LinkCommand implements CommandExecutor, TabCompleter {
         this.engine = engine;
     }
 
-    private void ok(CommandSender s, String msg) {
-        s.sendMessage(Component.text("[CrossLink] ", NamedTextColor.AQUA)
-                .append(Component.text(msg, NamedTextColor.GREEN)));
-    }
-
-    private void err(CommandSender s, String msg) {
-        s.sendMessage(Component.text("[CrossLink] ", NamedTextColor.AQUA)
-                .append(Component.text(msg, NamedTextColor.RED)));
-    }
-
-    private void info(CommandSender s, String msg) {
-        s.sendMessage(Component.text("[CrossLink] ", NamedTextColor.AQUA)
-                .append(Component.text(msg, NamedTextColor.WHITE)));
-    }
+    private void ok(CommandSender s, String m)   { Msg.ok(s, m); }
+    private void err(CommandSender s, String m)  { Msg.err(s, m); }
+    private void info(CommandSender s, String m) { Msg.info(s, m); }
 
     /**
      * Resolve um argumento em UUID.
@@ -63,8 +50,8 @@ public final class LinkCommand implements CommandExecutor, TabCompleter {
     }
 
     @Override
-    public boolean onCommand(@NotNull CommandSender s, @NotNull Command c,
-                             @NotNull String label, String[] a) {
+    public boolean onCommand(CommandSender s, Command c,
+                             String label, String[] a) {
         if (a.length == 0) { usage(s, label); return true; }
 
         switch (a[0].toLowerCase(Locale.ROOT)) {
@@ -217,8 +204,8 @@ public final class LinkCommand implements CommandExecutor, TabCompleter {
     }
 
     @Override
-    public List<String> onTabComplete(@NotNull CommandSender s, @NotNull Command c,
-                                      @NotNull String label, String[] a) {
+    public List<String> onTabComplete(CommandSender s, Command c,
+                                      String label, String[] a) {
         if (a.length == 1) {
             return filter(List.of("create", "add", "remove", "sync", "primary", "backups",
                     "restore", "resetprompt", "list", "delete", "reload"), a[0]);

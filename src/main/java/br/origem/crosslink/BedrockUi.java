@@ -1,6 +1,7 @@
 package br.origem.crosslink;
 
 import org.bukkit.entity.Player;
+import br.origem.crosslink.compat.Schedulers;
 import org.bukkit.plugin.Plugin;
 import org.geysermc.cumulus.form.CustomForm;
 import org.geysermc.cumulus.form.ModalForm;
@@ -110,7 +111,7 @@ public final class BedrockUi {
 
     /** Agenda algo que vai abrir outro formulario, dando tempo do atual fechar. */
     public void chain(Player p, Runnable r) {
-        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+        Schedulers.globalLater(plugin, () -> {
             if (p.isOnline()) r.run();
         }, CHAIN_DELAY_TICKS);
     }
@@ -130,7 +131,7 @@ public final class BedrockUi {
      * pelo menos avisa em vez de deixar o jogador no escuro.
      */
     private void guarded(Player p, Runnable r) {
-        plugin.getServer().getScheduler().runTask(plugin, () -> {
+        Schedulers.global(plugin, () -> {
             try {
                 r.run();
             } catch (Throwable t) {

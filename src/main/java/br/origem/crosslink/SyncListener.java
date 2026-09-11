@@ -10,6 +10,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.*;
+import br.origem.crosslink.compat.Schedulers;
 import org.bukkit.plugin.Plugin;
 
 /**
@@ -98,7 +99,7 @@ public final class SyncListener implements Listener {
     public void onDeath(PlayerDeathEvent e) {
         Player p = e.getEntity();
         if (groups.of(p.getUniqueId()) == null) return;
-        plugin.getServer().getScheduler().runTask(plugin, () -> {
+        Schedulers.global(plugin, () -> {
             if (p.isOnline()) engine.syncFrom(p);
         });
     }
@@ -106,7 +107,7 @@ public final class SyncListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR)
     public void onRespawn(PlayerRespawnEvent e) {
         Player p = e.getPlayer();
-        plugin.getServer().getScheduler().runTask(plugin, () -> {
+        Schedulers.global(plugin, () -> {
             if (p.isOnline()) engine.syncFrom(p);
         });
     }
@@ -117,7 +118,7 @@ public final class SyncListener implements Listener {
         LinkGroup g = groups.of(p.getUniqueId());
         if (g != null) {
             g.add(p.getUniqueId(), p.getName());   // mantem o nome exibido atualizado
-            plugin.getServer().getScheduler().runTask(plugin, () -> {
+            Schedulers.global(plugin, () -> {
                 if (p.isOnline()) engine.onJoin(p);
             });
         }
