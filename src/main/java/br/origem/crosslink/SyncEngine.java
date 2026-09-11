@@ -204,8 +204,8 @@ public final class SyncEngine {
         setActive(g, to);
         int changed = 0;
         for (World w : plugin.getServer().getWorlds()) {
-            for (Tameable t : w.getEntitiesByClass(Tameable.class)) {
-                if (retargetOne(t, g, to)) changed++;
+            for (Entity e : w.getEntities()) {
+                if (e instanceof Tameable t && retargetOne(t, g, to)) changed++;
             }
         }
         if (changed > 0) {
@@ -223,9 +223,9 @@ public final class SyncEngine {
         if (!syncPets) return;
         for (Entity e : entities) {
             if (!(e instanceof Tameable t)) continue;
-            AnimalTamer owner = t.getOwner();
-            if (owner == null) continue;
-            LinkGroup g = groups.of(owner.getUniqueId());
+            UUID ownerId = Compat.petOwnerId(t);
+            if (ownerId == null) continue;
+            LinkGroup g = groups.of(ownerId);
             if (g == null) continue;
             Player to = activeMember(g);
             if (to != null) retargetOne(t, g, to);
@@ -234,12 +234,57 @@ public final class SyncEngine {
 
     /** Transferencia pontual. Retorna true quando de fato mudou de dono. */
     public boolean retargetOne(Tameable t, LinkGroup g, Player to) {
-        AnimalTamer owner = t.getOwner();
-        if (owner == null) return false;
-        UUID oid = owner.getUniqueId();
+        UUID oid = Compat.petOwnerId(t);
+        if (oid == null) return false;
         if (oid.equals(to.getUniqueId()) || !g.has(oid)) return false;
         t.setOwner(to);
         return true;
+    }
+
+    /** Lista os pets em volta e de quem sao. Usado pelo diagnostico. */
+    public List<String> describePetsNear(Player p, int radius) {
+        List<String> out = new ArrayList<>();
+        LinkGroup g = groups.of(p.getUniqueId());
+        for (Entity e : p.getNearbyEntities(radius, radius, radius)) {
+            if (!(e instanceof Tameable t)) continue;
+            UUID oid = Compat.petOwnerId(t);
+            String owner;
+            if (oid == null) {
+                owner = t.isTamed() ? "tamed, owner unknown" : "not tamed";
+            } else if (oid.equals(p.getUniqueId())) {
+                owner = "YOU";
+            } else if (g != null && g.has(oid)) {
+                owner = "linked account (" + g.members().get(oid) + ")";
+            } else {
+                owner = "OUTSIDE your group: " + oid;
+            }
+            out.add(e.getType() + " -> " + owner);
+        }
+        return out;
+    }
+
+    /**
+     * Adota para o grupo os pets em volta, seja qual for o dono atual.
+     *
+     * Existe porque um pet domado antes do vinculo -- ou num periodo em que o
+     * servidor rodava offline-mode, quando a UUID do jogador era outra --
+     * pertence a uma UUID que o grupo nao conhece, e a transferencia normal
+     * ignora. Por ser destrutivo (rouba o pet de quem quer que seja o dono),
+     * exige comando explicito de admin.
+     */
+    public int claimPetsNear(Player p, int radius) {
+        LinkGroup g = groups.of(p.getUniqueId());
+        if (g == null) return 0;
+        setActive(g, p);
+        int n = 0;
+        for (Entity e : p.getNearbyEntities(radius, radius, radius)) {
+            if (!(e instanceof Tameable t) || !t.isTamed()) continue;
+            UUID oid = Compat.petOwnerId(t);
+            if (oid != null && oid.equals(p.getUniqueId())) continue;
+            t.setOwner(p);
+            n++;
+        }
+        return n;
     }
 
     public SharedState capture(Player p) {

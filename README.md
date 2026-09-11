@@ -248,6 +248,19 @@ Three triggers keep this working:
 
 Turn it off with `sync.pets: false`.
 
+If an animal does not respond, it was probably tamed by an account that is not
+in the group — common on worlds that once ran in offline mode, where the same
+person had a different UUID. Two commands diagnose and fix that:
+
+```
+/crosslink pets        # who owns the animals around you
+/crosslink claimpets   # adopt them into your group
+```
+
+`pets` prints `OUTSIDE your group` next to any animal whose owner is not
+linked. `claimpets` takes ownership of nearby tamed animals regardless of who
+owns them, so it is admin-only.
+
 ## How syncing works
 
 Two paths feed the mirroring:

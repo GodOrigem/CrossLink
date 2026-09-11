@@ -52,6 +52,23 @@ public final class Compat {
         return 20.0;
     }
 
+    /**
+     * UUID do dono de um animal domado.
+     *
+     * getOwnerUniqueId() e uma adicao do Paper e nao existe na API do Spigot,
+     * entao vai por reflexao. O fallback via getOwner() funciona, mas resolve um
+     * OfflinePlayer e pode voltar null quando o dono nunca entrou nesta sessao
+     * -- por isso o caminho direto vem primeiro.
+     */
+    public static java.util.UUID petOwnerId(org.bukkit.entity.Tameable t) {
+        try {
+            Object v = t.getClass().getMethod("getOwnerUniqueId").invoke(t);
+            if (v instanceof java.util.UUID u) return u;
+        } catch (Exception ignored) { }
+        org.bukkit.entity.AnimalTamer owner = t.getOwner();
+        return owner == null ? null : owner.getUniqueId();
+    }
+
     /** O Paper expoe perfil de jogador; o Spigot puro nao. */
     public static boolean hasPlayerProfileApi() {
         try {

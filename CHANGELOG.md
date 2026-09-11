@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.1.0-beta.4
+
+- Pet ownership is now read through `getOwnerUniqueId()` where available.
+  Resolving it via `getOwner()` returns an `OfflinePlayer` and can be null when
+  the owner has not joined during this session — which silently skipped the
+  transfer. The method is a Paper addition and does not exist in the Spigot
+  API, so it goes through the compat layer.
+- The world sweep iterates `getEntities()` and filters by type instead of
+  relying on `getEntitiesByClass()` with an interface.
+- **New: `/crosslink pets [radius]`** reports who owns each tameable around
+  you, flagging any owner that is not in your group.
+- **New: `/crosslink claimpets [radius]`** adopts nearby tamed animals into
+  your group regardless of current owner. This exists because an animal tamed
+  before the link — or while the server ran in offline mode, when the player
+  had a different UUID — belongs to a UUID the group does not know, and the
+  normal transfer correctly ignores it.
+
 ## 1.1.0-beta.3
 
 - **Fixed: pets did not recognise the account that was playing.** Three
