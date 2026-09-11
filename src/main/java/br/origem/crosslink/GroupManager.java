@@ -83,6 +83,7 @@ public final class GroupManager {
             if (g.primary() == null && !g.members().isEmpty()) {
                 g.primary(g.members().keySet().iterator().next());
             }
+            g.skin(gs.getString("skin.value"), gs.getString("skin.signature"));
             g.state(SharedState.load(gs.getConfigurationSection("state")));
             byName.put(key, g);
         }
@@ -96,6 +97,10 @@ public final class GroupManager {
             if (g.primary() != null) yml.set(base + ".primary", g.primary().toString());
             for (Map.Entry<UUID, String> e : g.members().entrySet()) {
                 yml.set(base + ".members." + e.getKey(), e.getValue());
+            }
+            if (g.hasSkin()) {
+                yml.set(base + ".skin.value", g.skinValue());
+                yml.set(base + ".skin.signature", g.skinSignature());
             }
             g.state().save(yml.createSection(base + ".state"));
         }

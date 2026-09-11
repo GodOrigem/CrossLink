@@ -40,6 +40,33 @@ public final class SkinService {
      * Aplica a skin de {@code javaId} em {@code target}, de forma assincrona.
      * O HTTP roda fora da thread principal; so a aplicacao volta pra ela.
      */
+    /** Aplica uma textura ja conhecida, sem rede. */
+    public boolean applyNow(Player target, Texture tex) {
+        if (tex == null || tex.value() == null) return false;
+        return Compat.applySkin(target, tex.value(), tex.signature());
+    }
+
+    /** Busca a textura na Mojang, fora da thread do jogo. */
+    public void fetchAsync(UUID javaId, java.util.function.Consumer<Texture> onOk,
+                           java.util.function.Consumer<String> onError) {
+        Schedulers.async(plugin, () -> {
+            Texture tex;
+            try {
+                tex = fetch(javaId);
+            } catch (Exception ex) {
+                plugin.getLogger().log(Level.WARNING, "failed to fetch skin for " + javaId, ex);
+                Schedulers.global(plugin, () -> onError.accept("could not reach Mojang servers"));
+                return;
+            }
+            if (tex == null) {
+                Schedulers.global(plugin, () -> onError.accept("the Java account has no public skin"));
+                return;
+            }
+            final Texture t = tex;
+            Schedulers.global(plugin, () -> onOk.accept(t));
+        });
+    }
+
     public void copySkin(UUID javaId, Player target, Runnable onSuccess, java.util.function.Consumer<String> onError) {
         Schedulers.async(plugin, () -> {
             Texture tex;

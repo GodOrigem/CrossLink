@@ -17,6 +17,9 @@ public final class LinkGroup {
     private final Map<UUID, String> members = new LinkedHashMap<>();
     private UUID primary;
     private SharedState state = new SharedState();
+    /** Ultima textura conhecida da conta Java, para reaplicar sem rede. */
+    private String skinValue;
+    private String skinSignature;
 
     public LinkGroup(String name) { this.name = name; }
 
@@ -32,6 +35,14 @@ public final class LinkGroup {
     public UUID primary() { return primary; }
     public void primary(UUID id) { this.primary = id; }
     public boolean isPrimary(UUID id) { return id != null && id.equals(primary); }
+
+    public String skinValue() { return skinValue; }
+    public String skinSignature() { return skinSignature; }
+    public boolean hasSkin() { return skinValue != null && !skinValue.isEmpty(); }
+    public void skin(String value, String signature) {
+        this.skinValue = value;
+        this.skinSignature = signature;
+    }
 
     public SharedState state() { return state; }
     public void state(SharedState s) { this.state = s; }

@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.1.0-beta.2
+
+- **Fixed: the Java skin was lost after relogging.** It was applied once, at
+  link time, and nothing re-applied it — Geyser sets the Bedrock skin during
+  login, so the first relog undid it. The skin is now re-applied on every join
+  of the Bedrock account.
+- The texture is cached in `groups.yml`, so re-applying is local and instant.
+  Mojang is only queried in the background, to pick up skin changes on the Java
+  account.
+- **SkinsRestorer conflict handled.** Both plugins rewrite the player profile,
+  which would make the skin flicker. CrossLink now detects SkinsRestorer and
+  steps aside, logging why. Override with `link.skin-provider: native`.
+
 ## 1.1.0-beta.1
 
 Widens the supported range and platforms. No behaviour changes for existing

@@ -19,11 +19,11 @@ import org.bukkit.plugin.Plugin;
  */
 public final class SyncListener implements Listener {
 
-    private final Plugin plugin;
+    private final CrossLinkPlugin plugin;
     private final SyncEngine engine;
     private final GroupManager groups;
 
-    public SyncListener(Plugin plugin, SyncEngine engine, GroupManager groups) {
+    public SyncListener(CrossLinkPlugin plugin, SyncEngine engine, GroupManager groups) {
         this.plugin = plugin;
         this.engine = engine;
         this.groups = groups;
@@ -121,6 +121,7 @@ public final class SyncListener implements Listener {
             Schedulers.global(plugin, () -> {
                 if (p.isOnline()) engine.onJoin(p);
             });
+            plugin.scheduleSkinOnJoin(p);
         }
     }
 

@@ -39,6 +39,18 @@ link:
   # Copia a skin da conta Java pra conta Bedrock ao vincular.
   copy-java-skin: true
 
+  # Reaplica a skin toda vez que a conta Bedrock entra. Sem isso ela se perde
+  # no primeiro relogin, porque o Geyser aplica a skin do Bedrock no login.
+  reapply-skin-on-join: true
+
+  # Atraso antes de aplicar, para entrar depois do Geyser.
+  skin-apply-delay-ticks: 40
+
+  # Quem manda na skin:
+  #   auto  -> se o SkinsRestorer estiver instalado, sai da frente e deixa com ele
+  #   native -> aplica sempre, mesmo com SkinsRestorer presente (pode conflitar)
+  skin-provider: auto
+
 # Varredura de seguranca: pega mudanca que nenhum evento viu.
 # 20 ticks = 1 segundo.
 sweep-interval-ticks: 20

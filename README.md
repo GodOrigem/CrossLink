@@ -207,6 +207,29 @@ is fetched from Mojang's session server **with its signature**
 (`unsigned=false`) — without the signature the client rejects the texture and
 the player shows up with the default skin.
 
+It is also **re-applied every time the Bedrock account joins**. Geyser applies
+the Bedrock skin during login, so without re-applying, the Java skin is lost on
+the first relog. The texture is cached in `groups.yml`, so the re-apply is
+local and instant; Mojang is only queried in the background, to notice when the
+Java account changes its skin.
+
+### SkinsRestorer
+
+SkinsRestorer also rewrites the player profile. Two plugins fighting over the
+same skin produce flickering, unpredictable results, so **CrossLink steps aside
+when SkinsRestorer is installed** and says so in the log. Everything else
+(linking, inventory, XP, pets) is unaffected.
+
+To override and let CrossLink apply skins anyway:
+
+```yaml
+link:
+  skin-provider: native   # default is 'auto'
+```
+
+There is no deep integration with SkinsRestorer's API — CrossLink simply does
+not compete with it.
+
 ## Pets
 
 Wolves, cats, horses and parrots start recognising whichever account is online.
